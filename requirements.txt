@@ -1,0 +1,16 @@
+# Python 3.11+ (developed and tested on 3.14).
+# Driver note: pg8000 (pure Python) instead of psycopg because psycopg's
+# binary wheels are not yet published for Python 3.14 on macOS and the
+# pure-python psycopg needs a libpq on the dyld search path, which SIP
+# makes unreliable. pg8000 needs neither. On Python 3.11-3.13 you may swap
+# in psycopg[binary] and change the DATABASE_URL prefix to
+# postgresql+psycopg:// if you prefer.
+fastapi>=0.115
+uvicorn[standard]>=0.32
+sqlalchemy>=2.0.43
+pg8000>=1.31
+alembic>=1.14
+pydantic>=2.12
+pydantic-settings>=2.7
+pytest>=8.3
+httpx>=0.28
