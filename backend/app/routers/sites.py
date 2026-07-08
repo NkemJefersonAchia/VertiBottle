@@ -17,6 +17,7 @@ from ..models import (
     SensorNode,
     Site,
     User,
+    ensure_utc,
     utcnow,
 )
 from ..rule_engine import OPEN_STATES
@@ -41,9 +42,10 @@ AMBER_STATES = {AlertState.watch, AlertState.acknowledged}
 
 def _site_status(site: Site, open_alerts: list[Alert]) -> tuple[str, bool]:
     node = site.sensor_node
+    last_seen = ensure_utc(node.last_seen) if node else None
     online = bool(
-        node and node.last_seen
-        and (utcnow() - node.last_seen) < timedelta(seconds=settings.NODE_OFFLINE_AFTER_SECONDS)
+        last_seen
+        and (utcnow() - last_seen) < timedelta(seconds=settings.NODE_OFFLINE_AFTER_SECONDS)
     )
     if not online:
         return "offline", False

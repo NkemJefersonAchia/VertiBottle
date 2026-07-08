@@ -1,5 +1,7 @@
 # VertiBottle
 
+![CI](https://github.com/NkemJefersonAchia/VertiBottle/actions/workflows/ci.yml/badge.svg)
+
 VertiBottle is a monitoring system for hydroponic bottle farms: vertical grow columns made from recycled PET bottles, run by schools and community groups in Cameroon's Far North region. Sensors track the seven parameters that decide whether the crop lives (pH, EC, water temperature, air temperature, humidity, water level, light), and the system tells the right operator, on a channel they actually have, when something drifts out of the crop's safe range. This build is the full pipeline running end to end with the hardware layer simulated in software, so there is live data on the dashboard within seconds of launching.
 
 ![Multi-site overview](docs/screenshots/overview.png)
@@ -90,7 +92,7 @@ backend/
     audit.py            append-only audit writes
     routers/            one file per API area (auth, sites, readings,
                         alerts, notifications, ussd, admin)
-  tests/                pytest suite for the state machine and rule engine
+  tests/                135-test suite (unit, API, end-to-end) — docs/TESTING.md
 frontend/
   index.html            single page, all views
   app.js                routing, charts, USSD phone, admin console, i18n
@@ -101,6 +103,9 @@ docs/
   API.md                every endpoint, with who may call it
   CONFIG.md             every setting and its default
   DEMO.md               a click-by-click demo walkthrough
+  TESTING.md            test strategy: grey-box rationale, seven principles
+.github/workflows/
+  ci.yml                full suite + coverage gate on every push
 ```
 
 Why this shape: the backend modules mirror the SRS component boundaries (ingestion, rule engine, dispatcher, presentation), which keeps each FR traceable to one file. The frontend is deliberately buildless — no bundler, no Node — because the SRS specifies vanilla HTML/JS + Chart.js and the demo must run anywhere.
@@ -108,8 +113,13 @@ Why this shape: the backend modules mirror the SRS component boundaries (ingesti
 ## Running the tests
 
 ```bash
-cd backend && ../.venv/bin/python -m pytest tests -q
+cd backend && ../.venv/bin/python -m pytest tests -q                     # 135 tests
+cd backend && ../.venv/bin/python -m pytest tests --cov=app --cov-branch # + coverage (95%)
 ```
+
+CI runs the suite on every push (see `.github/workflows/ci.yml`). The
+strategy — what's white-box vs black-box, and how the suite applies the
+seven testing principles — is in [docs/TESTING.md](docs/TESTING.md).
 
 ## Troubleshooting
 

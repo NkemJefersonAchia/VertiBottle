@@ -87,6 +87,11 @@ def evaluate(db: Session, reading: Reading, site: Site) -> Alert | None:
             band_max=band_max,
         )
         db.add(alert)
+        # Flush so the next evaluation on this channel sees the Watch even
+        # inside the same (autoflush=False) transaction. Without this, two
+        # out-of-band readings in one uncommitted session would stack
+        # duplicate Watches instead of escalating — found by the test suite.
+        db.flush()
         audit.log(db, "system", "watch_started",
                   f"{reading.parameter.value} out of band: {reading.value:.2f} "
                   f"(target {band_min:g}-{band_max:g})", site.id)

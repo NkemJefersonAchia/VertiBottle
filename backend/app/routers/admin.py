@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 from .. import audit
 from ..config import settings
 from ..database import get_db
-from ..models import AuditLog, Role, SensorNode, Site, User, utcnow
+from ..models import AuditLog, Role, SensorNode, Site, User, ensure_utc, utcnow
 from ..schemas import AuditEntry, NodeHealth, OperatorCreate, OperatorUpdate, UserOut
 from ..security import ADMIN_ONLY, current_user, hash_password, require_roles
 
@@ -39,9 +39,10 @@ def node_health(db: Session = Depends(get_db), user: User = Depends(current_user
     nodes = db.scalars(select(SensorNode).options(selectinload(SensorNode.site))).all()
     out = []
     for n in nodes:
+        last_seen = ensure_utc(n.last_seen)
         online = bool(
-            n.last_seen
-            and (utcnow() - n.last_seen) < timedelta(seconds=settings.NODE_OFFLINE_AFTER_SECONDS)
+            last_seen
+            and (utcnow() - last_seen) < timedelta(seconds=settings.NODE_OFFLINE_AFTER_SECONDS)
         )
         out.append(NodeHealth(
             site_id=n.site_id, site_name=n.site.name, node_id=n.id,

@@ -1,0 +1,35 @@
+name: CI
+
+# NFR 7.2 / SRS 2.5: automated testing on every change; changes must pass
+# CI before merging. Tests run on in-memory SQLite, so no database service
+# is needed in the runner.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.14"]  # oldest common + the dev machine's version
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run test suite with coverage
+        working-directory: backend
+        run: >
+          python -m pytest tests -q
+          --cov=app --cov-branch
+          --cov-report=term-missing
+          --cov-fail-under=90

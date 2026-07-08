@@ -63,8 +63,9 @@ app.include_router(admin.router)
 
 @app.get("/api/v1/status", tags=["meta"])
 def status():
-    """Liveness probe + whether the TimescaleDB fallback is in effect."""
-    return {"ok": True, "timescaledb": app.state.timescale}
+    """Liveness probe + whether the TimescaleDB fallback is in effect.
+    (timescaledb is None if the lifespan hasn't run, e.g. under TestClient.)"""
+    return {"ok": True, "timescaledb": getattr(app.state, "timescale", None)}
 
 
 # Mounted last so /api/* wins routing; html=True serves index.html at /.

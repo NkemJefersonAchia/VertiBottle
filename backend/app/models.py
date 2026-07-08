@@ -30,6 +30,17 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def ensure_utc(dt: datetime | None) -> datetime | None:
+    """Normalise a DB-loaded timestamp to timezone-aware UTC.
+
+    PostgreSQL returns aware datetimes for TIMESTAMPTZ columns, but SQLite
+    (used by the test suite) returns naive ones; arithmetic against
+    utcnow() must not depend on which backend is underneath."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def new_id() -> str:
     return str(uuid.uuid4())
 

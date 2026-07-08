@@ -13,4 +13,5 @@ alembic>=1.14
 pydantic>=2.12
 pydantic-settings>=2.7
 pytest>=8.3
+pytest-cov>=6.0
 httpx>=0.28
