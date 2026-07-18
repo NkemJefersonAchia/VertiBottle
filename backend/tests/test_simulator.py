@@ -119,6 +119,86 @@ def test_timeout_sweep_ignores_acknowledged(seeded_db):
     assert acked.state is AlertState.acknowledged
 
 
+def test_raised_alert_sustains_out_of_band(seeded_db, monkeypatch):
+    """A problem nobody acknowledged must not fix itself: while an alert is
+    in Notification Sent, the channel keeps reading out of band."""
+    monkeypatch.setattr(settings, "SIM_DRIFT_PROBABILITY", 0.0)
+    site = get_site(seeded_db, "GSS Maroua")
+    make_alert(seeded_db, site, parameter=Parameter.humidity, trigger_value=30.0)  # band 50-80
+
+    sim = Simulator()
+    for _ in range(10):
+        sim.step(seeded_db)
+    seeded_db.commit()
+
+    lo, hi = site.crop_profile.band(Parameter.humidity)
+    readings = seeded_db.query(Reading).filter_by(
+        site_id=site.id, parameter=Parameter.humidity).all()
+    out_of_band = [r for r in readings if not lo <= r.value <= hi]
+    # The first tick or two may still be easing onto the sustain level;
+    # after that every reading must be out of band on the low side.
+    assert len(out_of_band) >= 8
+    assert all(r.value < lo for r in out_of_band)
+    seeded_db.expire_all()
+    alert = seeded_db.query(Alert).filter_by(parameter=Parameter.humidity).one()
+    assert alert.state is AlertState.notification_sent
+
+
+def test_acknowledged_alert_recovers_and_resolves(seeded_db, monkeypatch):
+    """Acknowledgement starts the recovery ramp; the value re-enters the
+    band within a handful of ticks and the rule engine then flips the
+    alert to Resolved (correctiveActionVerified) — no manual nudge."""
+    monkeypatch.setattr(settings, "SIM_DRIFT_PROBABILITY", 0.0)
+    site = get_site(seeded_db, "GSS Maroua")
+    alert = make_alert(seeded_db, site, parameter=Parameter.humidity,
+                       state=AlertState.acknowledged, trigger_value=30.0)
+
+    sim = Simulator()
+    # Start the channel where the sustained problem left it: far out of band.
+    sim._ensure_channels(seeded_db, [site])
+    sim.channels[(site.id, Parameter.humidity.value)].baseline = 30.0
+
+    for ticks in range(1, 16):
+        sim.step(seeded_db)
+        seeded_db.commit()
+        seeded_db.expire_all()
+        if seeded_db.get(Alert, alert.id).state is AlertState.resolved:
+            break
+    assert seeded_db.get(Alert, alert.id).state is AlertState.resolved, \
+        "recovery ramp should re-enter the band and resolve within 15 ticks"
+    # And it stays healthy afterwards: no new alert on that channel.
+    for _ in range(3):
+        sim.step(seeded_db)
+    seeded_db.commit()
+    open_states = (AlertState.watch, AlertState.alert_raised,
+                   AlertState.notification_sent, AlertState.acknowledged)
+    assert seeded_db.query(Alert).filter(
+        Alert.parameter == Parameter.humidity,
+        Alert.state.in_(open_states)).count() == 0
+
+
+def test_timeout_reset_prevents_realert_loop(seeded_db, monkeypatch):
+    """After timeoutExpired closes an unacknowledged alert, the channel is
+    reset toward band centre instead of sustaining forever and re-raising."""
+    monkeypatch.setattr(settings, "SIM_DRIFT_PROBABILITY", 0.0)
+    site = get_site(seeded_db, "GSS Maroua")
+    stale = make_alert(seeded_db, site, parameter=Parameter.humidity, trigger_value=30.0)
+    stale.notified_at = utcnow() - timedelta(seconds=settings.ALERT_ACK_TIMEOUT_SECONDS + 60)
+    seeded_db.commit()
+
+    sim = Simulator()
+    for _ in range(4):
+        sim.step(seeded_db)
+    seeded_db.commit()
+    seeded_db.expire_all()
+    assert seeded_db.get(Alert, stale.id).state is AlertState.closed
+    last = (seeded_db.query(Reading)
+            .filter_by(site_id=site.id, parameter=Parameter.humidity)
+            .order_by(Reading.ts.desc()).first())
+    lo, hi = site.crop_profile.band(Parameter.humidity)
+    assert lo <= last.value <= hi
+
+
 def test_new_site_gets_channels_on_next_tick(seeded_db):
     """Registering a site mid-run must not crash the simulator; it picks
     the site up on the next tick (as promised in API.md)."""

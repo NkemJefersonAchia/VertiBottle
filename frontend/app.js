@@ -21,20 +21,35 @@ const STR = {
     ussd_lang_note: "The phone screen follows the operator's profile language (set via menu option 4), not the dashboard toggle — a CB operator's phone speaks their language regardless of this UI.",
     role: { school_operator: "School operator", cb_operator: "CB operator",
             coordinator: "Coordinator", agronomist: "Agronomist", admin: "Administrator" },
+    farm_title: "Live farm",
+    farm_all_ok: "All systems running normally — water circulating, sensors reporting.",
+    farm_watch: "{param} is drifting — monitoring closely",
+    farm_alarm: "{param} out of range — acknowledge the alert to start the fix",
+    farm_fixing: "{param}: {action} — value returning to target",
+    farm_more: "+{n} more",
+    fix_humidity_low: "misting the grow area", fix_humidity_high: "venting excess humidity",
+    fix_water_level_low: "refilling the reservoir", fix_water_level_high: "draining excess water",
+    fix_ph_low: "dosing pH-up solution", fix_ph_high: "dosing pH-down solution",
+    fix_ec_low: "adding nutrient concentrate", fix_ec_high: "diluting with fresh water",
+    fix_water_temp_low: "warming the reservoir", fix_water_temp_high: "shading the reservoir",
+    fix_air_temp_low: "closing vents to retain heat", fix_air_temp_high: "running the ventilation fan",
+    fix_light_low: "removing shade for more light", fix_light_high: "deploying shade cloth",
+    ussd_pick: "Dial as",
     nav_overview: "Overview", nav_alerts: "Alerts", nav_ussd: "USSD", nav_admin: "Admin",
     overview_title: "Farm sites", overview_sub: "Live status of every bottle farm in the programme",
     school: "School", community: "Community", last_update: "Updated",
     alerts_active: "active alert", alerts_active_pl: "active alerts", no_alerts_site: "All parameters in range",
     back: "Back to overview", target: "Target",
-    ribbon_alert: "needs attention", ribbon_watch: "being watched", acknowledge: "Acknowledge",
+    ribbon_alert: "needs attention", ribbon_watch: "being watched",
+    ribbon_fixing: "fix in progress", acknowledge: "Acknowledge",
     alerts_title: "Alerts", alerts_sub: "Active and past alerts across all sites",
     active_section: "Active", history_section: "History",
     col_site: "Site", col_param: "Parameter", col_value: "Value", col_state: "State",
     col_when: "When", col_action: "Action", close: "Close", none_active: "No active alerts. Everything is in range.",
     ussd_title: "USSD simulator", ussd_sub: "The feature-phone experience, no telecom required",
     ussd_hint_title: "How to use it",
-    ussd_hint: "Dial the shortcode as a community operator would. The seeded CB operator numbers are",
-    ussd_hint2: "Any registered operator phone works. Menus follow the operator's preferred language.",
+    ussd_hint: "Pick an operator above, then Dial as they would on a feature phone. Any registered operator's number works if you type it in.",
+    ussd_hint2: "Menu: 1 today's reading · 2 current alerts · 3 acknowledge (dial, 3, then the alert number — three presses) · 4 language · 0 exit.",
     dial: "Dial *384#", send: "Send", end_call: "End",
     admin_title: "Administration", admin_sub: "Sites, operators, audit and the notification outbox",
     register_site: "Register a site", site_name: "Site name", location: "Location",
@@ -63,20 +78,35 @@ const STR = {
     ussd_lang_note: "L'écran du téléphone suit la langue du profil de l'opérateur (option 4 du menu), pas le sélecteur du tableau de bord — le téléphone d'un opérateur CB parle sa langue quelle que soit cette interface.",
     role: { school_operator: "Opérateur scolaire", cb_operator: "Opérateur CB",
             coordinator: "Coordinateur", agronomist: "Agronome", admin: "Administrateur" },
+    farm_title: "Ferme en direct",
+    farm_all_ok: "Tous les systèmes fonctionnent — l'eau circule, les capteurs rapportent.",
+    farm_watch: "{param} dérive — surveillance renforcée",
+    farm_alarm: "{param} hors plage — confirmez l'alerte pour lancer l'intervention",
+    farm_fixing: "{param} : {action} — la valeur revient vers la cible",
+    farm_more: "+{n} autres",
+    fix_humidity_low: "brumisation de la zone de culture", fix_humidity_high: "ventilation de l'humidité",
+    fix_water_level_low: "remplissage du réservoir", fix_water_level_high: "vidange du trop-plein",
+    fix_ph_low: "dosage de solution pH+", fix_ph_high: "dosage de solution pH-",
+    fix_ec_low: "ajout de concentré nutritif", fix_ec_high: "dilution à l'eau claire",
+    fix_water_temp_low: "réchauffement du réservoir", fix_water_temp_high: "ombrage du réservoir",
+    fix_air_temp_low: "fermeture des aérations", fix_air_temp_high: "ventilation en marche",
+    fix_light_low: "retrait de l'ombrage", fix_light_high: "déploiement de la toile d'ombrage",
+    ussd_pick: "Composer en tant que",
     nav_overview: "Vue d'ensemble", nav_alerts: "Alertes", nav_ussd: "USSD", nav_admin: "Admin",
     overview_title: "Sites agricoles", overview_sub: "État en direct de chaque ferme du programme",
     school: "École", community: "Communautaire", last_update: "Mis à jour",
     alerts_active: "alerte active", alerts_active_pl: "alertes actives", no_alerts_site: "Tous les paramètres dans la plage",
     back: "Retour à la vue d'ensemble", target: "Cible",
-    ribbon_alert: "demande une intervention", ribbon_watch: "sous surveillance", acknowledge: "Confirmer",
+    ribbon_alert: "demande une intervention", ribbon_watch: "sous surveillance",
+    ribbon_fixing: "intervention en cours", acknowledge: "Confirmer",
     alerts_title: "Alertes", alerts_sub: "Alertes actives et passées sur tous les sites",
     active_section: "Actives", history_section: "Historique",
     col_site: "Site", col_param: "Paramètre", col_value: "Valeur", col_state: "État",
     col_when: "Quand", col_action: "Action", close: "Clôturer", none_active: "Aucune alerte active. Tout est dans la plage.",
     ussd_title: "Simulateur USSD", ussd_sub: "L'expérience téléphone simple, sans opérateur télécom",
     ussd_hint_title: "Mode d'emploi",
-    ussd_hint: "Composez le code comme le ferait un opérateur communautaire. Les numéros des opérateurs CB sont",
-    ussd_hint2: "Tout téléphone d'opérateur enregistré fonctionne. Les menus suivent la langue préférée de l'opérateur.",
+    ussd_hint: "Choisissez un opérateur ci-dessus, puis composez comme il le ferait sur un téléphone simple. Tout numéro d'opérateur enregistré fonctionne.",
+    ussd_hint2: "Menu : 1 relevé du jour · 2 alertes en cours · 3 confirmer (composer, 3, puis le numéro de l'alerte — trois touches) · 4 langue · 0 quitter.",
     dial: "Composer *384#", send: "Envoyer", end_call: "Fin",
     admin_title: "Administration", admin_sub: "Sites, opérateurs, audit et boîte d'envoi",
     register_site: "Enregistrer un site", site_name: "Nom du site", location: "Localité",
@@ -251,6 +281,7 @@ function destroyCharts() { charts.forEach((c) => c.destroy()); charts = []; }
 function route() {
   if (!token) return;
   destroyCharts();
+  Farm.unmount();
   if (pollTimer) clearInterval(pollTimer);
 
   const hash = location.hash || "#/overview";
@@ -355,83 +386,114 @@ async function renderSite(view, siteId) {
     api(`/readings?site_id=${siteId}&hours=24`),
     api(`/alerts?site_id=${siteId}&active=true`),
   ]);
-  destroyCharts();
 
-  const ribbon = buildRibbon(alerts);
-  view.innerHTML = `
-    <a class="back-link" href="#/overview">← ${t("back")}</a>
-    <div class="site-header">
-      <h1 class="page-title">${escapeHtml(site.name)}</h1>
-      <span class="muted">${escapeHtml(site.location)} · ${escapeHtml(site.crop_name)}</span>
-    </div>
-    <p class="page-sub">${site.site_type === "school" ? t("school") : t("community")}
-      · ${t("last_update")} ${fmtTime(site.last_updated)}</p>
-    ${ribbon}
-    <div class="chart-grid"></div>`;
+  // Build the skeleton (and the animated farm scene) only when arriving at
+  // this site; poll ticks update in place so CSS animations never reset.
+  const rebuild = charts.length === 0 || view.dataset.siteId !== siteId;
+  if (rebuild) {
+    destroyCharts();
+    Farm.unmount();
+    view.dataset.siteId = siteId;
+    view.innerHTML = `
+      <a class="back-link" href="#/overview">← ${t("back")}</a>
+      <div class="site-header">
+        <h1 class="page-title">${escapeHtml(site.name)}</h1>
+        <span class="muted">${escapeHtml(site.location)} · ${escapeHtml(site.crop_name)}</span>
+      </div>
+      <p class="page-sub">${site.site_type === "school" ? t("school") : t("community")}
+        · <span id="site-updated"></span></p>
+      <div id="site-ribbon"></div>
+      <div id="farm-panel" class="farm-panel"></div>
+      <div class="chart-grid"></div>`;
 
+    const grid = view.querySelector(".chart-grid");
+    series.forEach((s) => {
+      const card = document.createElement("div");
+      card.className = "chart-card";
+      card.innerHTML = `
+        <div class="chart-head">
+          <h3>${t("param")[s.parameter]}</h3>
+          <span class="value-badge" id="badge-${s.parameter}">—</span>
+        </div>
+        <p class="band-note">${t("target")}: ${s.band_min} – ${s.band_max}</p>
+        <div class="chart-wrap"><canvas></canvas></div>`;
+      grid.appendChild(card);
+
+      const chart = new Chart(card.querySelector("canvas"), {
+        type: "line",
+        data: {
+          datasets: [{
+            data: [],
+            borderColor: "#2f6fa8",
+            borderWidth: 1.6,
+            pointRadius: 0,
+            tension: 0.3,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            band: { min: s.band_min, max: s.band_max },
+            tooltip: { intersect: false, mode: "index" },
+          },
+          scales: {
+            x: {
+              type: "linear",
+              ticks: {
+                maxTicksLimit: 6,
+                callback: (v) => new Date(v).toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-GB",
+                  { hour: "2-digit", minute: "2-digit" }),
+              },
+              grid: { display: false },
+            },
+            y: { grid: { color: "#f0f0f2" } },
+          },
+        },
+        plugins: [bandPlugin],
+      });
+      chart._param = s.parameter;
+      charts.push(chart);
+    });
+    Farm.mount(document.getElementById("farm-panel"), site);
+  }
+
+  // Update pass (runs on first render and every poll).
+  document.getElementById("site-updated").textContent =
+    `${t("last_update")} ${fmtTime(site.last_updated)}`;
+  document.getElementById("site-ribbon").innerHTML = buildRibbon(alerts);
   wireRibbon(view, () => renderSite(view, siteId));
 
-  const grid = view.querySelector(".chart-grid");
   series.forEach((s) => {
-    const card = document.createElement("div");
-    card.className = "chart-card";
-    const badgeClass = s.in_band === null ? "" : s.in_band ? "in" : "out";
-    card.innerHTML = `
-      <div class="chart-head">
-        <h3>${t("param")[s.parameter]}</h3>
-        <span class="value-badge ${badgeClass}">${s.latest ?? "—"}</span>
-      </div>
-      <p class="band-note">${t("target")}: ${s.band_min} – ${s.band_max}</p>
-      <div class="chart-wrap"><canvas></canvas></div>`;
-    grid.appendChild(card);
-
-    const points = s.points.map((p) => ({ x: new Date(p.ts).getTime(), y: p.value }));
-    const chart = new Chart(card.querySelector("canvas"), {
-      type: "line",
-      data: {
-        datasets: [{
-          data: points,
-          borderColor: "#2f6fa8",
-          borderWidth: 1.6,
-          pointRadius: 0,
-          tension: 0.3,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: {
-          legend: { display: false },
-          band: { min: s.band_min, max: s.band_max },
-          tooltip: { intersect: false, mode: "index" },
-        },
-        scales: {
-          x: {
-            type: "linear",
-            ticks: {
-              maxTicksLimit: 6,
-              callback: (v) => new Date(v).toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-GB",
-                { hour: "2-digit", minute: "2-digit" }),
-            },
-            grid: { display: false },
-          },
-          y: { grid: { color: "#f0f0f2" } },
-        },
-      },
-      plugins: [bandPlugin],
-    });
-    charts.push(chart);
+    const chart = charts.find((c) => c._param === s.parameter);
+    if (chart) {
+      chart.data.datasets[0].data =
+        s.points.map((p) => ({ x: new Date(p.ts).getTime(), y: p.value }));
+      chart.update("none");
+    }
+    const badge = document.getElementById(`badge-${s.parameter}`);
+    if (badge) {
+      badge.textContent = s.latest ?? "—";
+      badge.className = "value-badge " + (s.in_band === null ? "" : s.in_band ? "in" : "out");
+    }
   });
+  Farm.push(series, alerts);
 }
 
 function buildRibbon(alerts) {
   const live = alerts.filter((a) =>
     ["alert_raised", "notification_sent", "acknowledged", "watch"].includes(a.state));
   if (live.length === 0) return "";
-  const worst = live.find((a) => ["alert_raised", "notification_sent"].includes(a.state)) || live[0];
-  const cls = ["alert_raised", "notification_sent"].includes(worst.state) ? "red" : "amber";
-  const verb = cls === "red" ? t("ribbon_alert") : t("ribbon_watch");
+  // Priority: an un-acknowledged alarm needs a human now; a fix in progress
+  // outranks a mere Watch because it's the one the farm view is animating.
+  const rank = (a) => (["alert_raised", "notification_sent"].includes(a.state) ? 0
+    : a.state === "acknowledged" ? 1 : 2);
+  const worst = [...live].sort((a, b) => rank(a) - rank(b))[0];
+  const cls = rank(worst) === 0 ? "red" : rank(worst) === 1 ? "blue" : "amber";
+  const verb = cls === "red" ? t("ribbon_alert")
+    : cls === "blue" ? t("ribbon_fixing") : t("ribbon_watch");
   const canAck = worst.state === "notification_sent" &&
     (me.role === "admin" || me.role === "coordinator" || me.site_id === worst.site_id);
   return `
@@ -516,15 +578,31 @@ async function renderAlerts(view) {
 
 /* ---------------- USSD simulator ---------------- */
 
+// The phone's language is the *operator profile's* language (a feature
+// phone has no dashboard toggle), so the demo defaults to an operator who
+// matches the current UI language — English UI dials as Aissatou (en),
+// French UI as Falmata (fr).
+const USSD_DEMO_OPERATORS = [
+  { phone: "+237650000001", label: "Aissatou · EN · GSS Maroua", lang: "en" },
+  { phone: "+237650000002", label: "Falmata · FR · Makabay", lang: "fr" },
+];
+
 function renderUssd(view) {
+  const defaultOp = USSD_DEMO_OPERATORS.find((o) => o.lang === lang) || USSD_DEMO_OPERATORS[0];
   view.innerHTML = `
     <h1 class="page-title">${t("ussd_title")}</h1>
     <p class="page-sub">${t("ussd_sub")}</p>
     <div class="ussd-wrap">
       <div class="phone">
+        <p class="ussd-pick-label">${t("ussd_pick")}</p>
+        <div class="role-chips ussd-ops">
+          ${USSD_DEMO_OPERATORS.map((o) =>
+            `<button class="chip ${o.phone === defaultOp.phone ? "active" : ""}"
+                     data-phone="${o.phone}">${o.label}</button>`).join("")}
+        </div>
         <div class="phone-screen" id="ussd-screen">*384#</div>
         <div class="phone-input">
-          <input id="ussd-phone" placeholder="+237650000002" value="+237650000002">
+          <input id="ussd-phone" placeholder="${defaultOp.phone}" value="${defaultOp.phone}">
         </div>
         <div class="keypad" id="ussd-keypad"></div>
         <div class="phone-actions">
@@ -535,7 +613,7 @@ function renderUssd(view) {
       </div>
       <div class="ussd-side">
         <h2>${t("ussd_hint_title")}</h2>
-        <p>${t("ussd_hint")} <code>+237650000002</code> (fr) / <code>+237650000008</code> (fr).</p>
+        <p>${t("ussd_hint")}</p>
         <br><p>${t("ussd_hint2")}</p>
         <br><p class="muted">${t("ussd_lang_note")}</p>
       </div>
@@ -546,6 +624,16 @@ function renderUssd(view) {
   let sessionKeys = [];   // accumulated presses this session
   let pending = "";       // digits typed since last Send
   let sessionActive = false;
+
+  view.querySelectorAll(".ussd-ops .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      document.getElementById("ussd-phone").value = chip.dataset.phone;
+      view.querySelectorAll(".ussd-ops .chip").forEach((c) =>
+        c.classList.toggle("active", c === chip));
+      sessionActive = false; sessionKeys = []; pending = "";
+      screen.textContent = "*384#";
+    });
+  });
 
   ["1","2","3","4","5","6","7","8","9","*","0","#"].forEach((k) => {
     const b = document.createElement("button");
@@ -750,9 +838,17 @@ async function renderAdmin(view) {
 
 /* ---------------- boot ---------------- */
 
-// Kiosk/demo auto-login: ?auto=<username> signs in with the demo password.
-// Handy for projector setups and headless screenshots; harmless otherwise.
-const autoUser = new URLSearchParams(location.search).get("auto");
+// Kiosk/demo helpers: ?auto=<username> signs in with the demo password and
+// ?lang=en|fr forces the UI language. Handy for projector setups and
+// headless screenshots; harmless otherwise.
+const bootParams = new URLSearchParams(location.search);
+const forcedLang = bootParams.get("lang");
+if (forcedLang === "en" || forcedLang === "fr") {
+  lang = forcedLang;
+  localStorage.setItem("vb_lang", lang);
+  localStorage.setItem("vb_lang_manual", "1");  // an explicit choice, like the toggle
+}
+const autoUser = bootParams.get("auto");
 if (autoUser) {
   api("/auth/login", {
     method: "POST",

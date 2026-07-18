@@ -21,10 +21,77 @@ reading still passes through every backend stage a hardware reading would.
 | 7 | Ingestion | `Simulator.step()` + `models.Reading` | Validates site/node existence implicitly via FKs, stamps `last_seen` on the node (feeds FR 8.2 health), writes the reading and an audit row (FR 8.1). |
 | 8 | Rule evaluation | `backend/app/rule_engine.py`, `evaluate()` | Runs synchronously right after each write, per SRS "immediately after a write". Fetches the site's crop band, decides Normal/Watch/Alert. |
 | 9 | Alert routing | `backend/app/notifier.py`, `dispatch()` | Fans out to every active operator of the site: dashboard banner always; email/SMS/USSD per the operator's contact details. Enforces the 20-per-channel-per-site-per-day rate limit. |
-| 10 | Visualization | `frontend/app.js` (`renderSite`, `bandPlugin`) | Polls `/api/v1/readings?site_id=…&hours=24` every 30 s, one Chart.js chart per parameter, target band shaded green, out-of-band badge in red. |
+| 10 | Visualization | `frontend/app.js` (`renderSite`, `bandPlugin`), `frontend/farm.js` | Polls `/api/v1/readings?site_id=…&hours=24` every 30 s, one Chart.js chart per parameter, target band shaded green, out-of-band badge in red. The animated Live farm panel (below) renders the same readings as a working farm. |
 | 11 | Operator acknowledgement | `routers/alerts.py` (`/ack`), `routers/ussd.py` (option 3) | Dashboard button or USSD menu. Email-reply/SMS-reply ACK has no inbound channel to receive replies, so those paths exist only as message text. |
 
-## Components
+## Alert-coupled simulation physics
+
+Early on, drift episodes ended on a timer: a problem fixed itself after a
+few ticks whether or not anyone responded. That made the whole notification
+chain decorative — the crop recovered identically if every alert was
+ignored. The simulator now couples its physics to alert state
+(`Simulator._alert_modes`, `ChannelSim.sustain_value` / `recover_value`):
+
+| Alert state for a (site, parameter) | Channel behaviour |
+|---|---|
+| none | normal: wandering baseline, day curve, random drift episodes |
+| Alert Raised / Notification Sent | **sustain** — the value holds past the band edge and stays there |
+| Acknowledged | **recover** — eases ~25% toward band centre per tick |
+| (first in-band reading) | rule engine flips the alert to Resolved |
+| after recovery | **settle** — 6 ticks of continued easing with seasonal/drift suppressed |
+| timeoutExpired close | baseline reset to band centre |
+
+Modes are derived from the alert table on every tick rather than kept in
+memory, so a backend restart mid-incident resumes correct behaviour.
+
+Two subtleties the tests and live observation forced:
+
+- **The settle tail.** An alert resolves on the *first* in-band reading,
+  which arrives while the baseline is still near the band edge. Handing
+  straight back to normal mode let the seasonal swing (±0.35×band width for
+  light) push the channel straight back out, re-raising the alert it had
+  just resolved. Observed live on EP Salak's light channel; fixed with the
+  settling ticks.
+- **The timeout reset.** A timed-out alert is closed without an
+  acknowledgement, so no recovery ramp ever runs. Without resetting the
+  baseline the channel would sustain forever and immediately re-raise, an
+  endless unattended loop.
+
+The payoff is that acknowledgement is causally real: the fix animation the
+operator watches is the fix that is happening in the readings, and an
+ignored alert visibly stays broken.
+
+## The Live farm view
+
+`frontend/farm.js` renders one bottle farm as an animated SVG driven by the
+same `/readings` and `/alerts` data as the charts. It is a self-contained
+IIFE (`Farm.mount/push/unmount`) with no dependencies beyond the helpers in
+`app.js`.
+
+Always-on animation shows the farm *running* even when everything is
+healthy — water circulating up the pipe, pump wheel turning, leaves
+swaying, bubbles rising in the reservoir. Readings drive the visuals
+continuously: sun opacity and ray scale track light, reservoir fill height
+tracks water level, its tint blends blue→green with EC, thermometers track
+the two temperatures, mist density tracks humidity, and the pH chip shows
+the live value.
+
+Out-of-band subsystems pulse amber (Watch) or red (raised). On
+acknowledgement the matching corrective-action overlay plays — misting
+head, refill pipe, pH/nutrient dosers, shade cloth, ventilation fan — with
+a caption naming the action in the viewer's language, chosen by direction
+(`fix_humidity_low` = "misting the grow area", `fix_humidity_high` =
+"venting excess humidity").
+
+Two implementation notes:
+
+- `renderSite` splits into build and update passes. The 30 s poll updates
+  chart datasets, badges and the farm in place; it never re-writes the
+  panel's HTML, because re-mounting the SVG would restart every CSS
+  animation and make the farm visibly stutter on each poll.
+- The farm polls on its own 10 s timer, matching the simulator tick, so a
+  fix animation tracks the data closely rather than lagging up to 30 s
+  behind.
 
 ```
 frontend (static)  ──HTTP──▶  FastAPI (backend/app/main.py)
@@ -115,6 +182,7 @@ The full transition table is `TRANSITIONS` in `state_machine.py`;
 | Piece | Status |
 |---|---|
 | Sensor nodes, MQTT, GSM/Wi-Fi | Simulated in `simulator.py` (see steps 1–6 above) |
+| Corrective actions (misting, dosing, shading…) | Simulated: v1.0 has no actuators (SRS 5.3 forbids writing to actuator pins). Acknowledgement stands in for the operator physically acting; the recovery ramp models the effect. v2.0's dosing pumps would replace the ramp with real control. |
 | Rule engine, state machine, audit, RBAC | Real |
 | Dashboard banner notifications | Real (poll-based) |
 | Email / SMS / USSD-push | Stubbed: full message persisted with `status="simulated"`, shown in admin outbox |

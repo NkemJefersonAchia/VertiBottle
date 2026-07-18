@@ -8,6 +8,26 @@ VertiBottle is a monitoring system for hydroponic bottle farms: vertical grow co
 
 ![Per-site dashboard](docs/screenshots/site_dashboard.png)
 
+Each site page opens with a **Live farm** view: an animated cross-section
+of the bottle farm driven by the real readings. Water circulates, the
+reservoir fills and tints with nutrient strength, the sun brightens with
+the light reading. When a parameter drifts out of range its subsystem
+pulses; acknowledge the alert and you watch the corrective action play
+(misting, dosing, shading) while the value actually climbs back into its
+target band. Ignore an alert and the problem stays broken — the simulation
+is coupled to the alert lifecycle, not on a timer.
+
+Both states at once below: water temperature is out of range and
+un-acknowledged, so its thermometer pulses red and the caption asks for an
+acknowledgement. Air temperature *was* acknowledged, so its chip is blue,
+the ventilation fan is running and the value is on its way back.
+
+![Live farm view: one alert ignored, one being fixed](docs/screenshots/farm_fixing.png)
+
+With nothing wrong, the farm simply runs — and you can watch it run.
+
+![Live farm view, all parameters healthy](docs/screenshots/farm_healthy.png)
+
 ## Prerequisites
 
 | Requirement | Version | Notes |
@@ -68,7 +88,8 @@ All passwords are `demo1234`. The login screen also has one-click role chips.
 | `agronomist` | Agronomist / researcher | Read-only + CSV export |
 | `admin` | Administrator | Everything: site registration, operators, audit log, notification outbox |
 
-Tip: `http://127.0.0.1:8000/?auto=coordinator` auto-logs-in for kiosk/projector use.
+Tip: `http://127.0.0.1:8000/?auto=coordinator` auto-logs-in for kiosk/projector
+use, and `&lang=fr` forces the interface language (handy for screenshots).
 
 ## Project structure
 
@@ -92,10 +113,11 @@ backend/
     audit.py            append-only audit writes
     routers/            one file per API area (auth, sites, readings,
                         alerts, notifications, ussd, admin)
-  tests/                135-test suite (unit, API, end-to-end) — docs/TESTING.md
+  tests/                139-test suite (unit, API, end-to-end) — docs/TESTING.md
 frontend/
   index.html            single page, all views
   app.js                routing, charts, USSD phone, admin console, i18n
+  farm.js               animated Live farm SVG (runs on real readings)
   styles.css            design tokens and layout
   vendor/chart.umd.js   Chart.js 4 (vendored, no CDN needed)
 docs/
@@ -113,7 +135,7 @@ Why this shape: the backend modules mirror the SRS component boundaries (ingesti
 ## Running the tests
 
 ```bash
-cd backend && ../.venv/bin/python -m pytest tests -q                     # 135 tests
+cd backend && ../.venv/bin/python -m pytest tests -q                     # 139 tests
 cd backend && ../.venv/bin/python -m pytest tests --cov=app --cov-branch # + coverage (95%)
 ```
 

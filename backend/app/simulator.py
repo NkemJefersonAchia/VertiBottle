@@ -14,7 +14,21 @@ Realism model:
     the documented danger window in the SRS problem statement).
   - Occasionally a channel enters a "drift episode": the value walks out of
     band for a few ticks, which is exactly what makes Watch -> Alert fire
-    during a demo, then it recovers so Resolved can be shown too.
+    during a demo.
+
+Alert-coupled physics (what makes acknowledgement matter):
+  - While a channel has an alert in Alert Raised / Notification Sent, the
+    value SUSTAINS out of band. A real problem does not fix itself while
+    everyone ignores the alert — pre-acknowledgement auto-recovery would
+    make the whole notification chain pointless in the demo.
+  - Once the alert is Acknowledged, the channel enters a RECOVERY ramp:
+    the value eases back toward the middle of the band over several ticks,
+    modelling the operator's corrective action taking effect. When it
+    re-enters the band, the rule engine flips the alert to Resolved
+    (correctiveActionVerified) — so the fix the dashboard animates is the
+    fix that is actually happening in the data.
+  - Modes are derived from the alert table every tick, not from in-memory
+    flags, so a backend restart mid-alert resumes the right behaviour.
 
 Also runs the timeoutExpired sweep: alerts stuck in Notification Sent past
 the acknowledgement window take the shortcut to Closed (state machine's
@@ -50,6 +64,15 @@ NOISE = {
 # How far past the band edge a drift episode pushes, as a fraction of band width.
 DRIFT_OVERSHOOT = 0.35
 
+# Sustain mode: how fast the value settles onto its held out-of-band level.
+SUSTAIN_EASE = 0.5
+
+# Recovery mode: fraction of the distance back to band-centre covered per
+# tick after acknowledgement. 0.25 ≈ visibly back in band within 4-6 ticks
+# (under a minute at the default cadence) — long enough to watch, short
+# enough for a live demo.
+RECOVERY_PULL = 0.25
+
 
 class ChannelSim:
     """Value generator for one (site, parameter) channel."""
@@ -63,8 +86,48 @@ class ChannelSim:
         self.baseline = random.uniform(mid - width * 0.15, mid + width * 0.15)
         self.drift_ticks_left = 0
         self.drift_direction = 1
+        self.settle_ticks_left = 0
+
+    def _finish(self, value: float) -> float:
+        # Physical floors: no negative lux, level, EC, humidity or pH.
+        if self.param is not Parameter.water_temp and self.param is not Parameter.air_temp:
+            value = max(value, 0.0)
+        return round(value, 2)
+
+    def sustain_value(self, direction: int) -> float:
+        """Hold the value out of band (unacknowledged raised alert). The
+        baseline eases onto a level past the band edge and sits there."""
+        width = self.band_max - self.band_min
+        edge = self.band_max if direction > 0 else self.band_min
+        target = edge + direction * width * DRIFT_OVERSHOOT
+        self.drift_ticks_left = 0
+        self.baseline += (target - self.baseline) * SUSTAIN_EASE
+        return self._finish(self.baseline + random.gauss(0, NOISE[self.param]))
+
+    def recover_value(self) -> float:
+        """Ramp back toward band centre (acknowledged alert: the operator's
+        corrective action is taking effect)."""
+        mid = (self.band_min + self.band_max) / 2
+        self.drift_ticks_left = 0
+        # The alert resolves on the FIRST in-band reading, which happens
+        # while the baseline is still near the band edge. Without a settling
+        # tail, normal mode's seasonal swing (up to ±0.35×width for light)
+        # would immediately push the channel back out and re-raise the alert
+        # it just resolved — observed live before this existed.
+        self.settle_ticks_left = 6
+        self.baseline += (mid - self.baseline) * RECOVERY_PULL
+        return self._finish(self.baseline + random.gauss(0, NOISE[self.param]))
 
     def next_value(self, tick: int) -> float:
+        # Post-recovery settling: keep easing to band centre with seasonal
+        # and drift suppressed, so the hand-back to normal mode starts from
+        # the middle of the band instead of the edge it recovered across.
+        if self.settle_ticks_left > 0:
+            self.settle_ticks_left -= 1
+            mid = (self.band_min + self.band_max) / 2
+            self.baseline += (mid - self.baseline) * RECOVERY_PULL
+            return self._finish(self.baseline + random.gauss(0, NOISE[self.param]))
+
         width = self.band_max - self.band_min
 
         # Day curve for the outdoor-ish parameters. One simulated "day" is
@@ -100,10 +163,7 @@ class ChannelSim:
         self.baseline += (mid - self.baseline) * 0.02  # gentle pull back to centre
 
         value = self.baseline + seasonal + drift + random.gauss(0, NOISE[self.param])
-        # Physical floors: no negative lux, level, EC or humidity.
-        if self.param is not Parameter.water_temp and self.param is not Parameter.air_temp:
-            value = max(value, 0.0)
-        return round(value, 2)
+        return self._finish(value)
 
 
 class Simulator:
@@ -120,6 +180,24 @@ class Simulator:
                     lo, hi = site.crop_profile.band(param)
                     self.channels[key] = ChannelSim(lo, hi, param)
 
+    def _alert_modes(self, db: Session) -> dict[tuple[str, str], tuple[str, int]]:
+        """Map (site_id, parameter) -> ("sustain"|"recover", direction).
+        Derived from the alert table so behaviour survives restarts:
+        raised-but-unacknowledged alerts sustain, acknowledged ones recover."""
+        rows = db.scalars(
+            select(Alert).where(Alert.state.in_((
+                AlertState.alert_raised,
+                AlertState.notification_sent,
+                AlertState.acknowledged,
+            )))
+        ).all()
+        modes: dict[tuple[str, str], tuple[str, int]] = {}
+        for a in rows:
+            direction = 1 if a.trigger_value > a.band_max else -1
+            mode = "recover" if a.state is AlertState.acknowledged else "sustain"
+            modes[(a.site_id, a.parameter.value)] = (mode, direction)
+        return modes
+
     def step(self, db: Session) -> int:
         """One simulation tick: emit readings for every site, run the rule
         engine, sweep acknowledgement timeouts. Returns readings written."""
@@ -131,6 +209,7 @@ class Simulator:
             )
         ).all()
         self._ensure_channels(db, sites)
+        alert_modes = self._alert_modes(db)
         written = 0
 
         for site in sites:
@@ -140,7 +219,13 @@ class Simulator:
             node.last_seen = utcnow()
             for param in Parameter:
                 sim = self.channels[(site.id, param.value)]
-                value = sim.next_value(self.tick)
+                mode = alert_modes.get((site.id, param.value))
+                if mode is None:
+                    value = sim.next_value(self.tick)
+                elif mode[0] == "recover":
+                    value = sim.recover_value()
+                else:
+                    value = sim.sustain_value(mode[1])
                 reading = Reading(
                     site_id=site.id, node_id=node.id, parameter=param, value=value
                 )
@@ -171,6 +256,18 @@ class Simulator:
             audit.log(db, "system", "alert_timeout_closed",
                       f"{alert.parameter.value} alert unacknowledged for "
                       f"{settings.ALERT_ACK_TIMEOUT_SECONDS}s", alert.site_id)
+            # Without an acknowledgement there is no recovery ramp; reset the
+            # channel toward its band centre so a timed-out alert doesn't
+            # immediately re-raise in an endless unattended loop.
+            channel = self.channels.get((alert.site_id, alert.parameter.value))
+            if channel:
+                channel.baseline = (channel.band_min + channel.band_max) / 2
+                channel.drift_ticks_left = 0
+        if stale:
+            # Same invariant as rule_engine: sessions run autoflush=False, so
+            # make the closures visible to the next tick's queries even when
+            # several ticks share one transaction (as the test suite does).
+            db.flush()
 
     async def run(self):
         while True:

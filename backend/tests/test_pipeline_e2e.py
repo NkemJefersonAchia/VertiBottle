@@ -34,7 +34,6 @@ def test_full_alert_lifecycle(client, school_op_token, coordinator_token,
 
     # Force GSS Maroua's pH channel far out of band (below 5.5).
     ph_channel = sim.channels[(site.id, Parameter.ph.value)]
-    healthy_baseline = ph_channel.baseline
     ph_channel.baseline = 3.0
 
     # Tick 2: first out-of-band reading -> Watch (amber, no notification).
@@ -63,18 +62,30 @@ def test_full_alert_lifecycle(client, school_op_token, coordinator_token,
     channels = {n["channel"] for n in outbox if n["alert_id"] == alert["id"]}
     assert channels == {"dashboard", "email", "sms", "ussd"}
 
-    # Operator acknowledges from the dashboard.
+    # Un-acknowledged, the problem must persist: two more ticks, still red.
+    sim.step(seeded_db)
+    sim.step(seeded_db)
+    seeded_db.commit()
+    still = [a for a in client.get(f"/api/v1/alerts?site_id={site.id}&active=true",
+                                   headers=hdr_op).json() if a["id"] == alert["id"]]
+    assert still and still[0]["state"] == "notification_sent"
+
+    # Operator acknowledges from the dashboard...
     res = client.post(f"/api/v1/alerts/{alert['id']}/ack", headers=hdr_op)
     assert res.status_code == 200 and res.json()["state"] == "acknowledged"
 
-    # The farm is tended: pH returns to the band; next tick verifies it.
-    ph_channel.baseline = healthy_baseline
-    ph_channel.drift_ticks_left = 0
-    sim.step(seeded_db)
-    seeded_db.commit()
-    alert_now = [a for a in client.get(f"/api/v1/alerts?site_id={site.id}",
-                                       headers=hdr_coord).json()
-                 if a["id"] == alert["id"]][0]
+    # ...which starts the recovery ramp: within a handful of ticks the pH
+    # is back in band and the rule engine marks the alert Resolved. No
+    # manual nudge — acknowledgement itself is what fixes the farm.
+    alert_now = None
+    for _ in range(15):
+        sim.step(seeded_db)
+        seeded_db.commit()
+        alert_now = [a for a in client.get(f"/api/v1/alerts?site_id={site.id}",
+                                           headers=hdr_coord).json()
+                     if a["id"] == alert["id"]][0]
+        if alert_now["state"] == "resolved":
+            break
     assert alert_now["state"] == "resolved"
     assert alert_now["resolved_at"] is not None
 

@@ -1,6 +1,6 @@
 # VertiBottle test strategy
 
-135 automated tests, 95% branch coverage, running locally (`pytest`) and in
+139 automated tests, 95% branch coverage, running locally (`pytest`) and in
 CI on every push (GitHub Actions). This document explains what is tested at
 which level, why the overall approach is **grey-box**, and how the suite
 applies the seven principles of testing (ISTQB).
@@ -83,10 +83,20 @@ cheapest they will ever be.
 
 **4. Defects cluster together.**
 Test effort is deliberately unequal. The rule engine + state machine +
-alert endpoints get ~50 of the 135 tests because that's where the failure
+alert endpoints get ~50 of the 139 tests because that's where the failure
 modes concentrate (state, concurrency-adjacent logic, permission rules).
 The audit read endpoint gets four. Both defects found so far were in the
 predicted cluster (the reading→alert path), validating the allocation.
+
+The alert-coupled simulator physics added later came with three tests that
+pin the behaviour the feature exists for: an un-acknowledged alert must
+*keep* reading out of band (`test_raised_alert_sustains_out_of_band`), an
+acknowledged one must recover and auto-resolve
+(`test_acknowledged_alert_recovers_and_resolves`), and a timed-out one must
+not re-raise in a loop (`test_timeout_reset_prevents_realert_loop`). The
+end-to-end scenario now also asserts the problem persists across two ticks
+before acknowledgement — without that assertion the old
+fixes-itself-on-a-timer behaviour would still pass.
 
 **5. Beware the pesticide paradox.**
 The same assertions re-run forever stop finding new bugs. Countermeasures:
@@ -109,7 +119,7 @@ yet. A payment system or the future actuator firmware (SRS 5.3) would
 demand a completely different mix.
 
 **7. Absence-of-errors is a fallacy.**
-135 green tests wouldn't matter if a teacher can't tell what's wrong with
+139 green tests wouldn't matter if a teacher can't tell what's wrong with
 their farm. The suite is therefore paired with validation that tests
 usefulness, not correctness: the scripted demo walkthrough
 (docs/DEMO.md) exercises the real user journeys end to end in a browser,
@@ -136,7 +146,7 @@ built the system right; the walkthrough checks we built the right system.
 | `test_rule_engine.py` | 9 | Watch/escalate/recover/resolve, channel independence, dedup |
 | `test_boundaries.py` | 7 | Band-edge boundary values |
 | `test_notifier.py` | 9 | SRS message formats EN/FR, fan-out, rate limit, inactive operators |
-| `test_simulator.py` | 9 | Emission counts, heartbeats, audit-per-reading, drift, timeout sweep |
+| `test_simulator.py` | 12 | Emission counts, heartbeats, audit-per-reading, drift, timeout sweep, alert-coupled sustain/recover physics |
 | `test_security.py` | 5 | Hashing, salting, malformed hashes, token uniqueness |
 | `test_api_auth.py` | 9 | Login contract, all roles, 401s, audit |
 | `test_api_sites.py` | 17 | Overview, traffic lights, registration RBAC, tamper-logged thresholds |
