@@ -68,5 +68,16 @@ def status():
     return {"ok": True, "timescaledb": getattr(app.state, "timescale", None)}
 
 
+class NoStaleCache(StaticFiles):
+    """Static files with forced revalidation. Without this, browsers keep a
+    heuristically-cached app.js across releases and users see stale UI
+    against a newer API. ETags make the revalidation round-trip cheap."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
+
+
 # Mounted last so /api/* wins routing; html=True serves index.html at /.
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+app.mount("/", NoStaleCache(directory=FRONTEND_DIR, html=True), name="frontend")

@@ -90,7 +90,11 @@ in an acknowledgeable state.
 
 ### GET /notifications?unread_only=true&limit=20 — any
 The dashboard banner feed: unread dashboard-channel notifications for the
-current user. Coordinators/admins see all sites' banners.
+current user. Coordinators/admins see all sites' banners. Each entry
+carries the alert's structured facts (`site_name`, `parameter`,
+`trigger_value`, `band_min`, `band_max`) alongside the stored `message`,
+so the dashboard renders banners in the viewer's current UI language;
+the stored `message` is the fixed-at-send-time record.
 
 ### POST /notifications/{id}/read — any
 Marks a banner dismissed. 204.

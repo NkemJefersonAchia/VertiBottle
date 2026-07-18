@@ -144,6 +144,15 @@ class NotificationOut(BaseModel):
     status: str
     sent_at: datetime
     read: bool
+    # Structured alert facts, so the dashboard can compose the banner text
+    # in the viewer's current UI language instead of showing the stored
+    # `message` (which is fixed in the recipient's language at send time —
+    # the right record for the outbox, the wrong thing for a banner).
+    site_name: str | None = None
+    parameter: Parameter | None = None
+    trigger_value: float | None = None
+    band_min: float | None = None
+    band_max: float | None = None
 
 
 class AuditEntry(BaseModel):

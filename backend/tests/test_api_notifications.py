@@ -22,6 +22,18 @@ def test_operator_sees_own_banner(client, school_op_token, seeded_db):
     assert notes[0]["read"] is False
 
 
+def test_banner_carries_structured_facts_for_client_side_i18n(client, school_op_token, seeded_db):
+    """The dashboard composes banner text in the viewer's UI language, so
+    the feed must include the alert facts, not just the frozen message
+    (regression: coordinators saw mixed-language banners)."""
+    _dispatch(seeded_db)
+    note = client.get("/api/v1/notifications", headers=auth(school_op_token)).json()[0]
+    assert note["site_name"] == "GSS Maroua Bottle Farm"
+    assert note["parameter"] == "ph"
+    assert note["trigger_value"] == 4.8
+    assert note["band_min"] == 5.5 and note["band_max"] == 6.5
+
+
 def test_operator_does_not_see_other_sites_banners(client, school_op_token, seeded_db):
     _dispatch(seeded_db, "Makabay")
     res = client.get("/api/v1/notifications", headers=auth(school_op_token))

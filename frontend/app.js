@@ -13,6 +13,14 @@ const STR = {
   en: {
     login_sub: "Hydroponic farm monitoring",
     sign_in: "Sign in", try_role: "Try a role", logout: "Log out",
+    username: "Username", password: "Password",
+    chip_school: "School operator", chip_cb: "CB operator", chip_coord: "Coordinator",
+    chip_agro: "Agronomist", chip_admin: "Administrator",
+    banner_alert: "Alert at {site}: {param} is {val}, outside the target band {band}. Action is needed.",
+    admin_only: "Admin only.", session_ended: "[session ended]",
+    ussd_lang_note: "The phone screen follows the operator's profile language (set via menu option 4), not the dashboard toggle — a CB operator's phone speaks their language regardless of this UI.",
+    role: { school_operator: "School operator", cb_operator: "CB operator",
+            coordinator: "Coordinator", agronomist: "Agronomist", admin: "Administrator" },
     nav_overview: "Overview", nav_alerts: "Alerts", nav_ussd: "USSD", nav_admin: "Admin",
     overview_title: "Farm sites", overview_sub: "Live status of every bottle farm in the programme",
     school: "School", community: "Community", last_update: "Updated",
@@ -47,6 +55,14 @@ const STR = {
   fr: {
     login_sub: "Suivi des fermes hydroponiques",
     sign_in: "Connexion", try_role: "Essayer un rôle", logout: "Déconnexion",
+    username: "Nom d'utilisateur", password: "Mot de passe",
+    chip_school: "Opérateur scolaire", chip_cb: "Opérateur CB", chip_coord: "Coordinateur",
+    chip_agro: "Agronome", chip_admin: "Administrateur",
+    banner_alert: "Alerte {site} : {param} = {val}, hors de la plage cible {band}. Une intervention est nécessaire.",
+    admin_only: "Réservé à l'administrateur.", session_ended: "[session terminée]",
+    ussd_lang_note: "L'écran du téléphone suit la langue du profil de l'opérateur (option 4 du menu), pas le sélecteur du tableau de bord — le téléphone d'un opérateur CB parle sa langue quelle que soit cette interface.",
+    role: { school_operator: "Opérateur scolaire", cb_operator: "Opérateur CB",
+            coordinator: "Coordinateur", agronomist: "Agronome", admin: "Administrateur" },
     nav_overview: "Vue d'ensemble", nav_alerts: "Alertes", nav_ussd: "USSD", nav_admin: "Admin",
     overview_title: "Sites agricoles", overview_sub: "État en direct de chaque ferme du programme",
     school: "École", community: "Communautaire", last_update: "Mis à jour",
@@ -110,6 +126,7 @@ async function api(path, options = {}) {
 function showLogin() {
   document.getElementById("login-screen").classList.remove("hidden");
   document.getElementById("app").classList.add("hidden");
+  applyI18n();
 }
 
 function showApp() {
@@ -143,7 +160,12 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     token = data.token; me = data.user;
     localStorage.setItem("vb_token", token);
     localStorage.setItem("vb_me", JSON.stringify(me));
-    if (me.language) { lang = me.language; localStorage.setItem("vb_lang", lang); }
+    // Default to the account's profile language, but never override a
+    // language the user picked with the toggle themselves.
+    if (me.language && !localStorage.getItem("vb_lang_manual")) {
+      lang = me.language;
+      localStorage.setItem("vb_lang", lang);
+    }
     location.hash = "#/overview";
     showApp();
   } catch (err) {
@@ -168,17 +190,36 @@ function applyI18n() {
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     el.textContent = t(el.dataset.i18n);
   });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
   document.getElementById("lang-toggle").textContent = lang === "en" ? "FR" : "EN";
 }
 
 document.getElementById("lang-toggle").addEventListener("click", () => {
   lang = lang === "en" ? "fr" : "en";
   localStorage.setItem("vb_lang", lang);
+  // A manual toggle is an explicit choice: stop login from resetting the
+  // language to the account's profile language after this.
+  localStorage.setItem("vb_lang_manual", "1");
   applyI18n();
   route();
 });
 
 /* ---------------- banner (real dashboard notification channel) ---------------- */
+
+// Banners are rendered in the *viewer's* current UI language from the
+// notification's structured fields. The stored `message` (fixed in the
+// recipient's language at send time) is only a fallback — and remains the
+// canonical record shown in the admin outbox.
+function bannerText(n) {
+  if (!n.parameter) return n.message;
+  return t("banner_alert")
+    .replace("{site}", n.site_name || "")
+    .replace("{param}", t("param")[n.parameter])
+    .replace("{val}", n.trigger_value)
+    .replace("{band}", `${n.band_min}–${n.band_max}`);
+}
 
 async function pollBanners() {
   if (!token) return;
@@ -189,7 +230,7 @@ async function pollBanners() {
     notes.forEach((n) => {
       const div = document.createElement("div");
       div.className = "banner";
-      div.innerHTML = `<span>⚠</span><span>${escapeHtml(n.message)}</span>
+      div.innerHTML = `<span>⚠</span><span>${escapeHtml(bannerText(n))}</span>
         <button class="banner-dismiss" title="Dismiss">✕</button>`;
       div.querySelector(".banner-dismiss").addEventListener("click", async () => {
         await api(`/notifications/${n.id}/read`, { method: "POST" });
@@ -496,6 +537,7 @@ function renderUssd(view) {
         <h2>${t("ussd_hint_title")}</h2>
         <p>${t("ussd_hint")} <code>+237650000002</code> (fr) / <code>+237650000008</code> (fr).</p>
         <br><p>${t("ussd_hint2")}</p>
+        <br><p class="muted">${t("ussd_lang_note")}</p>
       </div>
     </div>`;
 
@@ -522,7 +564,7 @@ function renderUssd(view) {
     try {
       const res = await api("/ussd", { method: "POST", body: JSON.stringify({ phone, text }) });
       screen.textContent = res.message;
-      if (res.end) { sessionActive = false; screen.textContent += "\n\n[session ended]"; }
+      if (res.end) { sessionActive = false; screen.textContent += "\n\n" + t("session_ended"); }
     } catch (e) {
       screen.textContent = "Network error: " + e.message;
       sessionActive = false;
@@ -548,7 +590,7 @@ function renderUssd(view) {
 /* ---------------- admin ---------------- */
 
 async function renderAdmin(view) {
-  if (me.role !== "admin") { view.innerHTML = `<p class="empty">Admin only.</p>`; return; }
+  if (me.role !== "admin") { view.innerHTML = `<p class="empty">${t("admin_only")}</p>`; return; }
 
   const [sites, crops, users, outbox, audit, health] = await Promise.all([
     api("/sites"), api("/crops"), api("/admin/users"),
@@ -612,7 +654,7 @@ async function renderAdmin(view) {
       </tr></thead><tbody>
       ${users.map((u) => `<tr>
         <td>${escapeHtml(u.name)}<br><span class="muted mono">${u.username}</span></td>
-        <td>${u.role}</td>
+        <td>${t("role")[u.role] || u.role}</td>
         <td class="muted">${u.phone || ""}<br>${u.email || ""}</td>
         <td>${u.language}</td>
         <td class="muted">${escapeHtml(sites.find((s) => s.id === u.site_id)?.name || "—")}</td>
