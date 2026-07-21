@@ -21,7 +21,7 @@ reading still passes through every backend stage a hardware reading would.
 | 7 | Ingestion | `Simulator.step()` + `models.Reading` | Validates site/node existence implicitly via FKs, stamps `last_seen` on the node (feeds FR 8.2 health), writes the reading and an audit row (FR 8.1). |
 | 8 | Rule evaluation | `backend/app/rule_engine.py`, `evaluate()` | Runs synchronously right after each write, per SRS "immediately after a write". Fetches the site's crop band, decides Normal/Watch/Alert. |
 | 9 | Alert routing | `backend/app/notifier.py`, `dispatch()` | Fans out to every active operator of the site: dashboard banner always; email/SMS/USSD per the operator's contact details. Enforces the 20-per-channel-per-site-per-day rate limit. |
-| 10 | Visualization | `frontend/app.js` (`renderSite`, `bandPlugin`), `frontend/farm.js` | Polls `/api/v1/readings?site_id=…&hours=24` every 30 s, one Chart.js chart per parameter, target band shaded green, out-of-band badge in red. The animated Live farm panel (below) renders the same readings as a working farm. |
+| 10 | Visualization | `frontend/app.js` (`renderSite`, `bandPlugin`), `frontend/farm3d.js` | Polls `/api/v1/readings?site_id=…&hours=24` every 30 s, one Chart.js chart per parameter, target band shaded green, out-of-band badge in red. The 3D digital twin (below) renders the same readings as a live WebGL model of the node. |
 | 11 | Operator acknowledgement | `routers/alerts.py` (`/ack`), `routers/ussd.py` (option 3) | Dashboard button or USSD menu. Email-reply/SMS-reply ACK has no inbound channel to receive replies, so those paths exist only as message text. |
 
 ## Alert-coupled simulation physics
@@ -61,37 +61,54 @@ The payoff is that acknowledgement is causally real: the fix animation the
 operator watches is the fix that is happening in the readings, and an
 ignored alert visibly stays broken.
 
-## The Live farm view
+## The 3D digital twin
 
-`frontend/farm.js` renders one bottle farm as an animated SVG driven by the
-same `/readings` and `/alerts` data as the charts. It is a self-contained
-IIFE (`Farm.mount/push/unmount`) with no dependencies beyond the helpers in
-`app.js`.
+`frontend/farm3d.js` renders the field node as a real-time 3D scene in
+WebGL (Three.js r160, vendored at `frontend/vendor/three.module.min.js` and
+imported as an ES module — the one place the frontend steps outside plain
+vanilla JS, for the realism a 3D digital twin needs). It exposes the same
+`Farm.mount/push/unmount` interface the old 2D view did, so `app.js` drives
+it unchanged; it reads the same `/readings` and `/alerts` data as the
+charts. The panel renders in a dark studio so glass, water, LEDs and the
+particle effects read like a product render; a light instrument HUD below
+the canvas lists each sensor with its BOM model number, live value and
+band.
 
-Always-on animation shows the farm *running* even when everything is
-healthy — water circulating up the pipe, pump wheel turning, leaves
-swaying, bubbles rising in the reservoir. Readings drive the visuals
-continuously: sun opacity and ray scale track light, reservoir fill height
-tracks water level, its tint blends blue→green with EC, thermometers track
-the two temperatures, mist density tracks humidity, and the pH chip shows
-the live value.
+The scene is a genuine digital twin — every element is bound to telemetry,
+not decorative:
 
-Out-of-band subsystems pulse amber (Watch) or red (raised). On
-acknowledgement the matching corrective-action overlay plays — misting
-head, refill pipe, pH/nutrient dosers, shade cloth, ventilation fan — with
-a caption naming the action in the viewer's language, chosen by direction
-(`fix_humidity_low` = "misting the grow area", `fix_humidity_high` =
-"venting excess humidity").
+| Reading | Drives |
+|---|---|
+| light | sun brightness + directional light, panel emissive glint, solar-watt readout, battery charge |
+| water_level | reservoir water height + ultrasonic readout |
+| ec | water tint (blue→green) + TDS readout |
+| water_temp / air_temp | the two thermometers |
+| humidity | mist particle density around the tower |
+| ph | pH chip + probe |
+| worst alert state | plant leaf colour and droop, control-box LED |
 
-Two implementation notes:
+Out-of-band subsystems get a pulsing status pip (amber Watch, red raised,
+blue fixing). On acknowledgement the matching corrective device runs — a
+misting particle emitter, a pH/nutrient doser dripping into the tank, an
+inflow stream, the ventilation fan spinning, a shade panel deploying over
+the reservoir — chosen by parameter and direction, with a caption naming
+the action in the viewer's language (`fix_humidity_low` = "misting the grow
+area", `fix_humidity_high` = "venting excess humidity").
 
-- `renderSite` splits into build and update passes. The 30 s poll updates
-  chart datasets, badges and the farm in place; it never re-writes the
-  panel's HTML, because re-mounting the SVG would restart every CSS
-  animation and make the farm visibly stutter on each poll.
-- The farm polls on its own 10 s timer, matching the simulator tick, so a
-  fix animation tracks the data closely rather than lagging up to 30 s
-  behind.
+Implementation notes:
+
+- **No WebGL, no problem.** If the browser has WebGL disabled the panel
+  shows a short fallback message; everything else (charts, alerts, USSD)
+  is unaffected.
+- `renderSite` splits into build and update passes. The 30 s poll pushes
+  new data into the existing scene; it never re-mounts, because rebuilding
+  the WebGL context every poll would stutter and leak GPU memory.
+- The twin polls on its own 10 s timer, matching the simulator tick, so a
+  fix animation tracks the data closely rather than lagging up to 30 s.
+- Corrective actions are *simulated* (v1.0 has no actuators — SRS 5.3
+  forbids writing to actuator pins): acknowledgement stands in for the
+  operator acting, and the recovery ramp models the effect. The 3D device
+  animations visualise what a v2.0 dosing pump / fan would physically do.
 
 ```
 frontend (static)  ──HTTP──▶  FastAPI (backend/app/main.py)

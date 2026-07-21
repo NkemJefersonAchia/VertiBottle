@@ -402,3 +402,75 @@ main { max-width: 1080px; margin: 0 auto; padding: 40px 28px 80px; }
 
 /* Ribbon: a fix in progress reads as calm/blue, not as an unmet alarm. */
 .alert-ribbon.blue { background: var(--blue-soft); color: var(--blue); }
+
+/* ---------- 3D digital twin ---------- */
+
+.twin-panel {
+  position: relative; padding: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg); margin-bottom: 28px;
+}
+.twin-canvas {
+  display: block; width: 100%; height: 460px; cursor: grab;
+  background:
+    radial-gradient(120% 95% at 50% 18%, #313945 0%, #1b2028 52%, #0d1015 100%);
+  touch-action: none;
+}
+.twin-canvas:active { cursor: grabbing; }
+
+.twin-hud { padding: 16px 18px 18px; border-top: 1px solid var(--line); }
+.twin-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.twin-title { font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; }
+.twin-live {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--green);
+}
+.twin-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 0 0 rgba(47,158,95,0.5); animation: twinPulse 1.8s ease-out infinite; }
+@keyframes twinPulse { 0% { box-shadow: 0 0 0 0 rgba(47,158,95,0.5); }
+                       100% { box-shadow: 0 0 0 7px rgba(47,158,95,0); } }
+
+.twin-power { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.twin-sensors { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+
+.twin-card {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 11px 13px; background: var(--bg-2);
+}
+.twin-card.power { background: linear-gradient(180deg, #f6f8fb, #eef2f6); }
+.twin-k { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+.twin-v { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums;
+  font-family: "SF Mono", ui-monospace, Menlo, monospace; letter-spacing: -0.02em; }
+.twin-v.small { font-size: 0.82rem; }
+.twin-sub { font-size: 0.72rem; color: var(--ink-3); margin-top: 2px; }
+.twin-batwrap { height: 6px; border-radius: 3px; background: #dfe5ec; margin-top: 6px; overflow: hidden; }
+.twin-bat { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.8s ease; }
+
+.twin-srow { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.twin-model { font-size: 0.68rem; font-weight: 600; color: var(--ink-2);
+  font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+.twin-dotc { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: 0 0 auto; }
+.twin-param { font-size: 0.78rem; color: var(--ink-2); }
+.twin-card.sensor .twin-v { font-size: 1.05rem; color: var(--green); }
+.twin-card.out    { border-color: var(--red);   background: var(--red-soft); }
+.twin-card.out    .twin-v, .twin-card.out .twin-dotc { color: var(--red); background: var(--red); }
+.twin-card.out    .twin-v { background: none; }
+.twin-card.alarm  { border-color: var(--red);   background: var(--red-soft); }
+.twin-card.alarm  .twin-v { color: var(--red); } .twin-card.alarm .twin-dotc { background: var(--red); }
+.twin-card.watch  { border-color: var(--amber); background: var(--amber-soft); }
+.twin-card.watch  .twin-v { color: var(--amber); } .twin-card.watch .twin-dotc { background: var(--amber); }
+.twin-card.fixing { border-color: var(--blue);  background: var(--blue-soft); }
+.twin-card.fixing .twin-v { color: var(--blue); }
+.twin-card.fixing .twin-dotc { background: var(--blue); animation: twinPulse 1.4s ease-out infinite; }
+
+.twin-caption { margin-top: 12px; font-size: 0.92rem; }
+.twin-caption .cap-ok { color: var(--green); }
+.twin-caption .cap-watch { color: var(--amber); font-weight: 500; }
+.twin-caption .cap-alarm { color: var(--red); font-weight: 600; }
+.twin-caption .cap-fixing { color: var(--blue); font-weight: 500; }
+.twin-hint { margin-top: 8px; font-size: 0.76rem; color: var(--ink-3); }
+
+@media (max-width: 620px) {
+  .twin-canvas { height: 320px; }
+  .twin-power { grid-template-columns: 1fr; }
+}

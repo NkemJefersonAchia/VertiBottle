@@ -8,25 +8,33 @@ VertiBottle is a monitoring system for hydroponic bottle farms: vertical grow co
 
 ![Per-site dashboard](docs/screenshots/site_dashboard.png)
 
-Each site page opens with a **Live farm** view: an animated cross-section
-of the bottle farm driven by the real readings. Water circulates, the
-reservoir fills and tints with nutrient strength, the sun brightens with
-the light reading. When a parameter drifts out of range its subsystem
-pulses; acknowledge the alert and you watch the corrective action play
-(misting, dosing, shading) while the value actually climbs back into its
-target band. Ignore an alert and the problem stays broken — the simulation
-is coupled to the alert lifecycle, not on a timer.
+Each site page opens with a **3D digital twin**: a real-time WebGL model
+of the physical node — solar array and battery, the recycled-bottle grow
+tower, the caged nutrient reservoir, pump, and the actual sensor suite from
+the bill of materials (DS18B20, DHT22, DFRobot pH/TDS probes, HC-SR04
+ultrasonic, BH1750). Every reading drives the model live: the sun brightens
+and the panels feed the battery with the light reading, the reservoir fills
+and tints with water level and nutrient strength, thermometers and mist
+track temperature and humidity. Drag to orbit, scroll to zoom. The
+instrument HUD below reads out each sensor with its model number, live
+value and target band.
 
-Both states at once below: water temperature is out of range and
-un-acknowledged, so its thermometer pulses red and the caption asks for an
-acknowledgement. Air temperature *was* acknowledged, so its chip is blue,
-the ventilation fan is running and the value is on its way back.
+When a parameter drifts out of range its subsystem pulses; acknowledge the
+alert and you watch the physical corrective action play — a misting head,
+a pH/nutrient doser, the reservoir refill, a ventilation fan, a shade
+panel — while the value actually climbs back into its target band. Ignore
+an alert and the problem stays broken: the simulation is coupled to the
+alert lifecycle, not a timer.
 
-![Live farm view: one alert ignored, one being fixed](docs/screenshots/farm_fixing.png)
+Below: pH is out of range, its probe flagged red in both the 3D model and
+the HUD, with the caption prompting an acknowledgement to start the fix.
 
-With nothing wrong, the farm simply runs — and you can watch it run.
+![3D digital twin with a pH alarm being addressed](docs/screenshots/twin_fixing.png)
 
-![Live farm view, all parameters healthy](docs/screenshots/farm_healthy.png)
+With nothing wrong, the twin simply runs — every sensor green, water
+circulating, the farm alive.
+
+![3D digital twin, all systems nominal](docs/screenshots/twin_healthy.png)
 
 ## Prerequisites
 
@@ -117,7 +125,8 @@ backend/
 frontend/
   index.html            single page, all views
   app.js                routing, charts, USSD phone, admin console, i18n
-  farm.js               animated Live farm SVG (runs on real readings)
+  farm3d.js             3D digital-twin renderer (Three.js / WebGL)
+  vendor/three.module.min.js  Three.js r160 (vendored, no CDN needed)
   styles.css            design tokens and layout
   vendor/chart.umd.js   Chart.js 4 (vendored, no CDN needed)
 docs/

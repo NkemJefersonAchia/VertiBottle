@@ -143,3 +143,6 @@ def test_frontend_and_vendor_assets_served(client):
     assert client.get("/vendor/chart.umd.js").status_code == 200
     assert client.get("/app.js").status_code == 200
     assert client.get("/styles.css").status_code == 200
+    # 3D digital-twin assets: the Three.js module and the twin renderer.
+    assert client.get("/farm3d.js").status_code == 200
+    assert client.get("/vendor/three.module.min.js").status_code == 200

@@ -24,12 +24,12 @@ Example — calm simulation, fast timeout, alternative port:
 SIM_DRIFT_PROBABILITY=0.002 ALERT_ACK_TIMEOUT_SECONDS=180 PORT=8010 ./run.sh
 ```
 
-Frontend knobs (constants in `frontend/app.js` and `frontend/farm.js`, not
+Frontend knobs (constants in `frontend/app.js` and `frontend/farm3d.js`, not
 env vars, since they are static files):
 
 - `POLL_MS = 30000` — the dashboard/chart poll interval from the SRS.
-- The Live farm panel refreshes on its own 10 s timer (`farm.js`), matching
-  the simulator tick so fix animations track the data closely.
+- The 3D digital twin refreshes on its own 10 s timer (`farm3d.js`),
+  matching the simulator tick so fix animations track the data closely.
 
 URL parameters (no configuration needed, useful for demos):
 `?auto=<username>` auto-logs-in with the demo password, `?lang=en|fr`

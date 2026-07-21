@@ -21,15 +21,17 @@ colours and the "Updated HH:MM:SS" line ticking every ~30 s — that's the
 dashboard polling the API, per the spec.
 
 **2. Pick a site — ideally an amber or red one.**
-The **Live farm** panel comes first: water circulating up the column, the
-pump turning, leaves swaying, the reservoir filled to the measured level
-and tinted by nutrient strength, the sun as bright as the light reading.
-Nothing is decorative — every moving part is reading live data. Below it,
-seven charts with the crop's target band shaded green.
+The **3D digital twin** comes first: a WebGL model of the node — solar
+array feeding a battery, the bottle grow tower, the caged nutrient tank
+with its probes, the ESP32 enclosure, the fan. Drag to orbit it. Nothing is
+decorative — the sun brightness, water level and tint, thermometers and
+mist all read live data, and the instrument HUD below lists every sensor by
+its real part number (DS18B20, DHT22, DFRobot SEN0161-V2, etc.) with its
+value and band. Under that, seven charts with the target band shaded green.
 
 **3. Watch the escalation.**
 When a value first leaves the band the site turns **amber — Watch** and
-that subsystem starts pulsing amber in the farm view. One reading might be
+that subsystem's pip starts pulsing amber in the twin. One reading might be
 probe noise; nobody gets paged. If the *next* reading is also out of band
 the alert is raised and dispatched: the ribbon turns **red — Notification
 sent**, the subsystem pulses red, and a banner appears at the top of every
@@ -44,13 +46,13 @@ sent, in the operator's language. Note the SMS format matches the SRS:
 
 **5. Acknowledge, and watch the farm get fixed.**
 This is the centrepiece. Hit **Acknowledge** on the ribbon and stay on the
-page. The subsystem stops flashing red and the corrective action starts
-playing: a misting head spraying for low humidity, a doser dripping for
-pH, shade cloth unrolling over the reservoir for heat, the ventilation fan
-spinning for hot air. The caption names what is happening ("Humidity:
-misting the grow area — value returning to target") and the number beside
-it climbs back toward the band in real time. The charts agree, because
-it's the same data.
+page. The subsystem's pip turns blue and the physical corrective device
+runs in the 3D scene: a misting emitter for low humidity, a doser dripping
+into the tank for pH, an inflow stream for a low reservoir, the ventilation
+fan spinning for hot air, a shade panel sliding over the tank for heat. The
+caption names what is happening ("Humidity: misting the grow area — value
+returning to target") and the sensor's HUD value climbs back toward the
+band in real time. The charts agree, because it's the same data.
 
 **6. Acknowledge from a feature phone (USSD page).**
 The operator picker at the top of the phone defaults to an operator whose

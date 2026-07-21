@@ -34,6 +34,10 @@ const STR = {
     fix_water_temp_low: "warming the reservoir", fix_water_temp_high: "shading the reservoir",
     fix_air_temp_low: "closing vents to retain heat", fix_air_temp_high: "running the ventilation fan",
     fix_light_low: "removing shade for more light", fix_light_high: "deploying shade cloth",
+    twin_title: "Digital twin", twin_live: "live", twin_ok: "All systems nominal — water circulating, sensors reporting.",
+    twin_solar: "Solar", twin_batt: "Battery", twin_node: "Node",
+    twin_hint: "Drag to orbit · scroll to zoom. Every reading drives the model in real time.",
+    twin_nowebgl: "3D view needs WebGL, which this browser has disabled.",
     ussd_pick: "Dial as",
     nav_overview: "Overview", nav_alerts: "Alerts", nav_ussd: "USSD", nav_admin: "Admin",
     overview_title: "Farm sites", overview_sub: "Live status of every bottle farm in the programme",
@@ -91,6 +95,10 @@ const STR = {
     fix_water_temp_low: "réchauffement du réservoir", fix_water_temp_high: "ombrage du réservoir",
     fix_air_temp_low: "fermeture des aérations", fix_air_temp_high: "ventilation en marche",
     fix_light_low: "retrait de l'ombrage", fix_light_high: "déploiement de la toile d'ombrage",
+    twin_title: "Jumeau numérique", twin_live: "en direct", twin_ok: "Tous les systèmes sont nominaux — l'eau circule, les capteurs rapportent.",
+    twin_solar: "Solaire", twin_batt: "Batterie", twin_node: "Nœud",
+    twin_hint: "Faites glisser pour pivoter · molette pour zoomer. Chaque mesure anime le modèle en temps réel.",
+    twin_nowebgl: "La vue 3D nécessite WebGL, désactivé dans ce navigateur.",
     ussd_pick: "Composer en tant que",
     nav_overview: "Vue d'ensemble", nav_alerts: "Alertes", nav_ussd: "USSD", nav_admin: "Admin",
     overview_title: "Sites agricoles", overview_sub: "État en direct de chaque ferme du programme",
@@ -281,7 +289,7 @@ function destroyCharts() { charts.forEach((c) => c.destroy()); charts = []; }
 function route() {
   if (!token) return;
   destroyCharts();
-  Farm.unmount();
+  if (window.Farm) Farm.unmount();
   if (pollTimer) clearInterval(pollTimer);
 
   const hash = location.hash || "#/overview";
@@ -392,7 +400,7 @@ async function renderSite(view, siteId) {
   const rebuild = charts.length === 0 || view.dataset.siteId !== siteId;
   if (rebuild) {
     destroyCharts();
-    Farm.unmount();
+    if (window.Farm) Farm.unmount();
     view.dataset.siteId = siteId;
     view.innerHTML = `
       <a class="back-link" href="#/overview">← ${t("back")}</a>
@@ -457,7 +465,7 @@ async function renderSite(view, siteId) {
       chart._param = s.parameter;
       charts.push(chart);
     });
-    Farm.mount(document.getElementById("farm-panel"), site);
+    if (window.Farm) Farm.mount(document.getElementById("farm-panel"), site);
   }
 
   // Update pass (runs on first render and every poll).
@@ -479,7 +487,7 @@ async function renderSite(view, siteId) {
       badge.className = "value-badge " + (s.in_band === null ? "" : s.in_band ? "in" : "out");
     }
   });
-  Farm.push(series, alerts);
+  if (window.Farm) Farm.push(series, alerts);
 }
 
 function buildRibbon(alerts) {
