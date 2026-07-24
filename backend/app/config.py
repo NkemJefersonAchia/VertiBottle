@@ -11,16 +11,43 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # PostgreSQL connection. Postgres.app default: current macOS user, no password.
-    # pg8000 needs the username spelled out, so we resolve it at import time.
+    # PostgreSQL connection.
+    #  - Local dev (empty): Postgres.app default — current macOS user, no
+    #    password, pg8000 driver (pure Python, works on the dev machine's
+    #    Python 3.14 where psycopg has no wheels).
+    #  - Production (set by the host, e.g. Render): a bare
+    #    "postgresql://user:pass@host/db" URL. We normalise it below to pick
+    #    an installed driver (psycopg on Linux, pg8000 as fallback) and to
+    #    require TLS for any non-local host.
     DATABASE_URL: str = ""
 
-    def resolved_database_url(self) -> str:
-        if self.DATABASE_URL:
-            return self.DATABASE_URL
-        import getpass
+    @staticmethod
+    def _driver() -> str:
+        try:
+            import psycopg  # noqa: F401
+            return "psycopg"
+        except Exception:
+            return "pg8000"
 
-        return f"postgresql+pg8000://{getpass.getuser()}@localhost:5432/vertibottle"
+    def resolved_database_url(self) -> str:
+        raw = self.DATABASE_URL
+        if not raw:
+            import getpass
+            return f"postgresql+pg8000://{getpass.getuser()}@localhost:5432/vertibottle"
+
+        scheme, sep, rest = raw.partition("://")
+        if not sep:
+            return raw  # not a URL we recognise; hand it through untouched
+        # Add a driver if the host gave us a bare postgres/postgresql scheme.
+        if "+" not in scheme:
+            driver = self._driver()
+            raw = f"postgresql+{driver}://{rest}"
+            scheme = f"postgresql+{driver}"
+        # Managed Postgres requires TLS; psycopg reads sslmode from the URL.
+        is_local = "@localhost" in raw or "@127.0.0.1" in raw
+        if "psycopg" in scheme and "sslmode=" not in raw and not is_local:
+            raw += ("&" if "?" in raw else "?") + "sslmode=require"
+        return raw
 
     # Simulator cadence. Real hardware samples air params every 5 min and
     # water quality every 15 min (FR 1.2); we compress that to a few seconds

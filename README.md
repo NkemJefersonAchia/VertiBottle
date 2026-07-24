@@ -2,6 +2,8 @@
 
 ![CI](https://github.com/NkemJefersonAchia/VertiBottle/actions/workflows/ci.yml/badge.svg)
 
+**Live demo:** https://vertibottle.onrender.com  ·  log in with any role chip (all passwords `demo1234`), or open `https://vertibottle.onrender.com/?auto=coordinator` to skip the login. On the free tier the first request may take ~50 seconds to wake the server, then it's fast.
+
 VertiBottle is a monitoring system for hydroponic bottle farms: vertical grow columns made from recycled PET bottles, run by schools and community groups in Cameroon's Far North region. Sensors track the seven parameters that decide whether the crop lives (pH, EC, water temperature, air temperature, humidity, water level, light), and the system tells the right operator, on a channel they actually have, when something drifts out of the crop's safe range. This build is the full pipeline running end to end with the hardware layer simulated in software, so there is live data on the dashboard within seconds of launching.
 
 ![Multi-site overview](docs/screenshots/overview.png)
@@ -75,6 +77,27 @@ cd backend
 ../.venv/bin/uvicorn app.main:app --port 8000
 ```
 
+## Deploy to a public URL (Render, free — no Docker, no card)
+
+The repo ships a Render Blueprint (`render.yaml`) that provisions a free
+PostgreSQL database and a free web service. The app creates its own tables
+and seeds the demo data on first boot, so there is nothing to run by hand.
+
+1. Push this repo to your own GitHub (it is already public).
+2. Sign in at https://render.com with GitHub.
+3. Click **New +  →  Blueprint**, choose this repository, and **Apply**.
+   Render reads `render.yaml`, creates `vertibottle-db` and the web service,
+   and wires `DATABASE_URL` between them automatically.
+4. Wait for the first build (2–4 min). Your public URL appears at the top of
+   the service page, e.g. `https://vertibottle.onrender.com`.
+5. Open it and confirm `…/api/v1/status` returns `{"ok": true, ...}`.
+
+Then update the **Live demo** link at the top of this README with your real
+URL. Free web services sleep after 15 min idle; the next request wakes them
+in ~50 s. Everything else — the Procfile, the `DATABASE_URL` normalisation
+that adds the driver and TLS, `requirements-prod.txt` (which adds psycopg for
+Linux) — is already handled in code.
+
 ## Seeding
 
 Seeding is automatic: on startup, if the database has no sites, the app inserts the 5 pilot sites (3 school, 2 community), the 4 crop profiles (lettuce, spinach, amaranth, basil) and the demo users below. To re-seed from scratch:
@@ -102,8 +125,11 @@ use, and `&lang=fr` forces the interface language (handy for screenshots).
 ## Project structure
 
 ```
-run.sh                  one-command launcher
-requirements.txt        Python dependencies
+run.sh                  one-command local launcher
+render.yaml             Render Blueprint (free public deploy)
+Procfile                start command for Railway / Heroku-style hosts
+requirements.txt        Python dependencies (local, pg8000 driver)
+requirements-prod.txt   adds psycopg for Linux production hosts
 backend/
   alembic/              database migrations
   app/

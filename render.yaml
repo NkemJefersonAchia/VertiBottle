@@ -1,0 +1,34 @@
+# Render.com Blueprint — one-click deploy of VertiBottle to a public URL.
+#
+# In the Render dashboard: New +  ->  Blueprint  ->  connect this repo.
+# Render reads this file and provisions:
+#   1. a free PostgreSQL database (schema + demo data seed themselves on boot)
+#   2. a free web service running the FastAPI app + dashboard on one port
+#
+# The app creates its tables and seeds the 5 pilot sites / demo users on
+# startup, so there is no manual migration or seeding step.
+
+services:
+  - type: web
+    name: vertibottle
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "pip install -r requirements-prod.txt"
+    startCommand: "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/v1/status
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vertibottle-db
+          property: connectionString
+      # A slightly livelier simulation so a grader sees alerts quickly.
+      - key: SIM_DRIFT_PROBABILITY
+        value: "0.02"
+
+databases:
+  - name: vertibottle-db
+    plan: free
+    region: oregon

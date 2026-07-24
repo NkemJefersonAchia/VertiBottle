@@ -1,0 +1,6 @@
+# Production dependencies (Linux hosts, e.g. Render).
+# Kept separate from requirements.txt so local dev on the author's macOS +
+# Python 3.14 machine keeps using pg8000 (psycopg has no 3.14 wheels there),
+# while production uses psycopg, which handles managed-Postgres TLS cleanly.
+-r requirements.txt
+psycopg[binary]>=3.2
