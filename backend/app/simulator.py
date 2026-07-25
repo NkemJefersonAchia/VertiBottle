@@ -36,9 +36,12 @@ right-side edge).
 """
 
 import asyncio
+import logging
 import math
 import random
 from datetime import timedelta
+
+log = logging.getLogger("vertibottle.simulator")
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -270,17 +273,36 @@ class Simulator:
             db.flush()
 
     async def run(self):
+        # The feed must survive a single bad tick. Managed Postgres (e.g.
+        # Render) drops idle connections and renegotiates TLS, so an
+        # occasional commit fails; re-raising here would kill the task
+        # permanently and the dashboard would silently stop updating (no new
+        # readings, no alerts to acknowledge). Instead we log, roll back, and
+        # keep going, with a short backoff so a persistent fault can't
+        # hot-loop. pool_pre_ping on the engine recycles stale connections.
+        consecutive_errors = 0
         while True:
             db = session_scope()
             try:
                 self.step(db)
                 db.commit()
+                consecutive_errors = 0
+            except asyncio.CancelledError:
+                db.rollback()
+                raise  # shutdown: let cancellation propagate
             except Exception:
                 db.rollback()
-                raise
+                consecutive_errors += 1
+                log.warning("simulator tick failed (%d in a row); continuing",
+                            consecutive_errors, exc_info=True)
             finally:
                 db.close()
-            await asyncio.sleep(settings.SIM_INTERVAL_SECONDS)
+            delay = settings.SIM_INTERVAL_SECONDS
+            if consecutive_errors:
+                # back off in multiples of the normal cadence (so it scales
+                # with the configured interval), capped at 30s
+                delay = min(30.0, settings.SIM_INTERVAL_SECONDS * (1 + 2 * consecutive_errors))
+            await asyncio.sleep(delay)
 
     def start(self):
         self._task = asyncio.create_task(self.run())

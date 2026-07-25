@@ -199,6 +199,46 @@ def test_timeout_reset_prevents_realert_loop(seeded_db, monkeypatch):
     assert lo <= last.value <= hi
 
 
+def test_run_survives_a_failing_tick(SessionFactory, seeded_db, monkeypatch):
+    """A single failing tick must not kill the feed. This is the Render bug:
+    managed Postgres drops idle connections, a commit fails, and the old
+    loop re-raised and stopped forever — no more readings, no more alerts to
+    acknowledge. The loop must log, roll back, and keep ticking."""
+    import asyncio
+
+    import app.simulator as sim_mod
+
+    monkeypatch.setattr(sim_mod, "session_scope", lambda: SessionFactory())
+    monkeypatch.setattr(settings, "SIM_INTERVAL_SECONDS", 0.01)
+
+    sim = sim_mod.Simulator()
+    real_step = sim.step
+    calls = {"n": 0}
+
+    def flaky_step(db):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("transient DB blip")
+        return real_step(db)
+
+    monkeypatch.setattr(sim, "step", flaky_step)
+
+    async def drive():
+        task = asyncio.create_task(sim.run())
+        await asyncio.sleep(0.2)
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+    asyncio.run(drive())
+
+    # Kept ticking after the first tick raised, and wrote data on good ticks.
+    assert calls["n"] >= 3
+    assert seeded_db.query(Reading).count() > 0
+
+
 def test_new_site_gets_channels_on_next_tick(seeded_db):
     """Registering a site mid-run must not crash the simulator; it picks
     the site up on the next tick (as promised in API.md)."""
