@@ -551,13 +551,13 @@ async function renderAlerts(view) {
   };
 
   const table = (rows) => `
-    <table class="table">
+    <div class="table-scroll"><table class="table">
       <thead><tr>
         <th>${t("col_site")}</th><th>${t("col_param")}</th><th>${t("col_value")}</th>
         <th>${t("col_state")}</th><th>${t("col_when")}</th><th>${t("col_action")}</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table></div>`;
 
   view.innerHTML = `
     <h1 class="page-title">${t("alerts_title")}</h1>
@@ -729,7 +729,7 @@ async function renderAdmin(view) {
 
     <div class="section">
       <h2>${t("node_health")}</h2>
-      <table class="table"><thead><tr>
+      <div class="table-scroll"><table class="table"><thead><tr>
         <th>${t("col_site")}</th><th>${t("col_node")}</th><th>${t("connectivity")}</th><th>${t("col_seen")}</th><th></th>
       </tr></thead><tbody>
       ${health.map((h) => `<tr>
@@ -739,12 +739,12 @@ async function renderAdmin(view) {
         <td class="muted">${fmtDateTime(h.last_seen)}</td>
         <td><span class="online-dot ${h.online ? "on" : "off"}"></span>${h.online ? t("online") : t("offline")}</td>
       </tr>`).join("")}
-      </tbody></table>
+      </tbody></table></div>
     </div>
 
     <div class="section">
       <h2>${t("operators")}</h2>
-      <table class="table"><thead><tr>
+      <div class="table-scroll"><table class="table"><thead><tr>
         <th>${t("col_user")}</th><th>${t("col_role")}</th><th>${t("col_contact")}</th>
         <th>${t("col_lang")}</th><th>${t("col_site2")}</th>
       </tr></thead><tbody>
@@ -755,13 +755,13 @@ async function renderAdmin(view) {
         <td>${u.language}</td>
         <td class="muted">${escapeHtml(sites.find((s) => s.id === u.site_id)?.name || "—")}</td>
       </tr>`).join("")}
-      </tbody></table>
+      </tbody></table></div>
     </div>
 
     <div class="section">
       <h2>${t("outbox")}</h2>
       <p class="page-sub">${t("outbox_sub")}</p>
-      <table class="table"><thead><tr>
+      <div class="table-scroll"><table class="table"><thead><tr>
         <th>${t("col_channel")}</th><th>${t("col_recipient")}</th>
         <th>${t("col_message")}</th><th>${t("col_status")}</th><th>${t("col_when")}</th>
       </tr></thead><tbody>
@@ -772,7 +772,7 @@ async function renderAdmin(view) {
         <td class="muted">${n.status}</td>
         <td class="muted">${fmtDateTime(n.sent_at)}</td>
       </tr>`).join("")}
-      </tbody></table>
+      </tbody></table></div>
     </div>
 
     <div class="section">
@@ -784,7 +784,7 @@ async function renderAdmin(view) {
           ${[...new Set(audit.map((a) => a.action))].map((a) => `<option>${a}</option>`).join("")}
         </select>
       </div>
-      <table class="table"><tbody id="audit-body"></tbody></table>
+      <div class="table-scroll"><table class="table"><tbody id="audit-body"></tbody></table></div>
     </div>`;
 
   // register site
