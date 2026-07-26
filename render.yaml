@@ -27,6 +27,12 @@ services:
       # A slightly livelier simulation so a grader sees alerts quickly.
       - key: SIM_DRIFT_PROBABILITY
         value: "0.02"
+      # Ease the write load on the free-tier database so user actions stay
+      # snappy: tick a little less often and keep less history.
+      - key: SIM_INTERVAL_SECONDS
+        value: "15"
+      - key: RETENTION_HOURS
+        value: "12"
 
 databases:
   - name: vertibottle-db

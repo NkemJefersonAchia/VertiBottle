@@ -12,8 +12,9 @@ const API = "/api/v1";
 const STR = {
   en: {
     login_sub: "Hydroponic farm monitoring",
-    sign_in: "Sign in", try_role: "Try a role", logout: "Log out",
+    sign_in: "Sign in", try_role: "Or sign in with one click", logout: "Log out",
     username: "Username", password: "Password",
+    login_hint: "Every demo account uses the password demo1234. Type a username and password above and press Sign in, or just tap a role below to sign in instantly.",
     chip_school: "School operator", chip_cb: "CB operator", chip_coord: "Coordinator",
     chip_agro: "Agronomist", chip_admin: "Administrator",
     banner_alert: "Alert at {site}: {param} is {val}, outside the target band {band}. Action is needed.",
@@ -46,6 +47,7 @@ const STR = {
     back: "Back to overview", target: "Target",
     ribbon_alert: "needs attention", ribbon_watch: "being watched",
     ribbon_fixing: "fix in progress", acknowledge: "Acknowledge",
+    acknowledging: "Acknowledging…", banner_open: "Open site", dismiss: "Dismiss",
     alerts_title: "Alerts", alerts_sub: "Active and past alerts across all sites",
     active_section: "Active", history_section: "History",
     col_site: "Site", col_param: "Parameter", col_value: "Value", col_state: "State",
@@ -73,8 +75,9 @@ const STR = {
   },
   fr: {
     login_sub: "Suivi des fermes hydroponiques",
-    sign_in: "Connexion", try_role: "Essayer un rôle", logout: "Déconnexion",
+    sign_in: "Connexion", try_role: "Ou connectez-vous en un clic", logout: "Déconnexion",
     username: "Nom d'utilisateur", password: "Mot de passe",
+    login_hint: "Tous les comptes de démonstration utilisent le mot de passe demo1234. Saisissez un identifiant et un mot de passe ci-dessus puis cliquez sur Connexion, ou touchez simplement un rôle ci-dessous pour vous connecter instantanément.",
     chip_school: "Opérateur scolaire", chip_cb: "Opérateur CB", chip_coord: "Coordinateur",
     chip_agro: "Agronome", chip_admin: "Administrateur",
     banner_alert: "Alerte {site} : {param} = {val}, hors de la plage cible {band}. Une intervention est nécessaire.",
@@ -107,6 +110,7 @@ const STR = {
     back: "Retour à la vue d'ensemble", target: "Cible",
     ribbon_alert: "demande une intervention", ribbon_watch: "sous surveillance",
     ribbon_fixing: "intervention en cours", acknowledge: "Confirmer",
+    acknowledging: "Confirmation…", banner_open: "Ouvrir le site", dismiss: "Fermer",
     alerts_title: "Alertes", alerts_sub: "Alertes actives et passées sur tous les sites",
     active_section: "Actives", history_section: "Historique",
     col_site: "Site", col_param: "Paramètre", col_value: "Valeur", col_state: "État",
@@ -267,12 +271,20 @@ async function pollBanners() {
     area.innerHTML = "";
     notes.forEach((n) => {
       const div = document.createElement("div");
-      div.className = "banner";
-      div.innerHTML = `<span>⚠</span><span>${escapeHtml(bannerText(n))}</span>
-        <button class="banner-dismiss" title="Dismiss">✕</button>`;
-      div.querySelector(".banner-dismiss").addEventListener("click", async () => {
-        await api(`/notifications/${n.id}/read`, { method: "POST" });
+      div.className = "banner" + (n.site_id ? " clickable" : "");
+      div.innerHTML = `<span>⚠</span><span class="banner-msg">${escapeHtml(bannerText(n))}</span>
+        <span class="banner-go">${t("banner_open")} →</span>
+        <button class="banner-dismiss" title="${t("dismiss")}">✕</button>`;
+      // Clicking the banner (anywhere but the ✕) opens the affected site so
+      // the operator can acknowledge and resolve the issue there.
+      div.addEventListener("click", (e) => {
+        if (e.target.closest(".banner-dismiss")) return;
+        if (n.site_id) location.hash = `#/site/${n.site_id}`;
+      });
+      div.querySelector(".banner-dismiss").addEventListener("click", async (e) => {
+        e.stopPropagation();
         div.remove();
+        try { await api(`/notifications/${n.id}/read`, { method: "POST" }); } catch (_) {}
       });
       area.appendChild(div);
     });
@@ -518,8 +530,14 @@ function wireRibbon(view, refresh) {
   if (!btn) return;
   btn.addEventListener("click", async () => {
     const id = view.querySelector(".alert-ribbon").dataset.alertId;
-    await api(`/alerts/${id}/ack`, { method: "POST" });
-    refresh();
+    // Instant feedback so a slow host doesn't feel unresponsive.
+    btn.disabled = true;
+    btn.textContent = t("acknowledging");
+    try {
+      await api(`/alerts/${id}/ack`, { method: "POST" });
+    } finally {
+      refresh();
+    }
   });
 }
 
@@ -574,13 +592,15 @@ async function renderAlerts(view) {
 
   view.querySelectorAll("[data-ack]").forEach((b) =>
     b.addEventListener("click", async () => {
-      await api(`/alerts/${b.dataset.ack}/ack`, { method: "POST" });
-      renderAlerts(view);
+      b.disabled = true; b.textContent = t("acknowledging");
+      try { await api(`/alerts/${b.dataset.ack}/ack`, { method: "POST" }); }
+      finally { renderAlerts(view); }
     }));
   view.querySelectorAll("[data-close]").forEach((b) =>
     b.addEventListener("click", async () => {
-      await api(`/alerts/${b.dataset.close}/close`, { method: "POST" });
-      renderAlerts(view);
+      b.disabled = true; b.textContent = "…";
+      try { await api(`/alerts/${b.dataset.close}/close`, { method: "POST" }); }
+      finally { renderAlerts(view); }
     }));
 }
 

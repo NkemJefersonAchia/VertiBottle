@@ -9,7 +9,7 @@ Full-stack prototype (FastAPI + PostgreSQL + a live WebGL dashboard), built agai
 |---|---|
 | **Live demo** | **https://vertibottle.onrender.com** |
 | **Quick access** | https://vertibottle.onrender.com/?auto=coordinator (skips login) |
-| **Login** | any role chip on the login screen — all passwords are `demo1234` |
+| **Login** | tap a role chip to sign in instantly, or type a username + password and press **Sign in**. All demo passwords are `demo1234` |
 | **Source** | this repository (public) |
 | **SRS document** | _paste your Google Drive link to the SRS here_ |
 
@@ -181,8 +181,8 @@ A fuller click-by-click script is in [docs/DEMO.md](docs/DEMO.md). The short ver
 
 1. **Log in** as `coordinator` (or use `?auto=coordinator`). You land on the **multi-site overview** — five farms with traffic-light status.
 2. **Open a site.** The **3D digital twin** loads at the top: drag to orbit, scroll to zoom. Every part is driven by live data. Below it, a live chart per parameter with the healthy band shaded green, and the instrument HUD listing each real sensor (DS18B20, DHT22, DFRobot pH/TDS, HC-SR04, BH1750) with its value.
-3. **Watch an alert fire.** When a reading drifts out of band the site turns amber (*Watch*), then red (*Alert*) on the second reading, and a **banner** appears.
-4. **Acknowledge it.** Click **Acknowledge** on the ribbon. The corrective action plays in the twin (misting, dosing, fan, shade…) and the reading actually climbs back into its band. Ignore it instead and the problem stays broken — the simulation is tied to the alert lifecycle, not a timer.
+3. **Watch an alert fire.** When a reading drifts out of band the site turns amber (*Watch*), then red (*Alert*) on the second reading, and a red **banner** appears at the top. **Click the banner** and it takes you straight to the affected site.
+4. **Acknowledge it.** Click **Acknowledge** on the alert ribbon. The corrective action plays in the twin (misting, dosing, fan, shade…) and the reading actually climbs back into its band. Ignore it instead and the problem stays broken — the simulation is tied to the alert lifecycle, not a timer.
 5. **See the other channels.** Log in as `admin` → **Notification outbox** shows the exact email / SMS / USSD messages that would have been sent, in the operator's language.
 6. **Try the feature phone.** Open the **USSD** page, dial as a community operator, and acknowledge an alert in three presses.
 7. **Admin & audit.** As `admin`: register a site, edit a crop threshold (watch it appear in the audit log with old → new values), review node health.

@@ -515,3 +515,20 @@ html, body { overflow-x: hidden; }
   .twin-hud { padding: 12px 12px 14px; }
   .chip { font-size: 0.8rem; padding: 6px 11px; }
 }
+
+/* ---------- Login hint + clickable notifications ---------- */
+
+.login-hint {
+  color: var(--ink-2); font-size: 0.85rem; line-height: 1.5;
+  margin: -18px 0 24px; padding: 12px 14px;
+  background: var(--bg-2); border-radius: var(--radius-sm); text-align: left;
+}
+
+.banner.clickable { cursor: pointer; }
+.banner.clickable:hover { filter: brightness(0.98); }
+.banner .banner-msg { flex: 1; }
+.banner .banner-go {
+  font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+  color: var(--red); opacity: 0.85;
+}
+.banner .banner-dismiss { margin-left: 4px; }

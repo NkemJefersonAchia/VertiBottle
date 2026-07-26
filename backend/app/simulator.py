@@ -43,13 +43,13 @@ from datetime import timedelta
 
 log = logging.getLogger("vertibottle.simulator")
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from . import audit, rule_engine
 from .config import settings
 from .database import session_scope
-from .models import Alert, AlertState, Parameter, Reading, Site, utcnow
+from .models import Alert, AlertState, AuditLog, Parameter, Reading, Site, utcnow
 from .state_machine import transition
 
 # Per-parameter noise scale (in parameter units) — roughly the sensor
@@ -240,8 +240,22 @@ class Simulator:
                 written += 1
 
         self._sweep_ack_timeouts(db)
+        # Periodically discard readings older than the retention window so the
+        # readings table (and its per-reading audit rows) stays small and
+        # chart queries stay fast on a long-running deployment. Runs every
+        # ~50 ticks, not every tick, to keep the delete cost off the hot path.
+        if settings.RETENTION_HOURS and self.tick % 50 == 0:
+            self._prune_old_data(db)
         self.tick += 1
         return written
+
+    def _prune_old_data(self, db: Session) -> None:
+        cutoff = utcnow() - timedelta(hours=settings.RETENTION_HOURS)
+        db.execute(delete(Reading).where(Reading.ts < cutoff))
+        # The per-reading audit rows are the bulk of the audit table; alert and
+        # operator-action audit entries are kept regardless of age.
+        db.execute(delete(AuditLog).where(
+            AuditLog.action == "reading", AuditLog.ts < cutoff))
 
     def _sweep_ack_timeouts(self, db: Session) -> None:
         """timeoutExpired: Notification Sent -> Closed when nobody responds

@@ -74,6 +74,12 @@ class Settings(BaseSettings):
     # SRS business rule: max notification dispatches per channel per site per day.
     NOTIFICATION_DAILY_LIMIT: int = 20
 
+    # Retention window for raw readings and their per-reading audit rows. The
+    # simulator periodically prunes anything older, so the readings table stays
+    # small and dashboard/chart queries stay fast on a long-running deploy.
+    # Set to 0 to disable pruning (keep everything). Charts request up to 24h.
+    RETENTION_HOURS: int = 48
+
     # Bind address for uvicorn (used by run.sh).
     HOST: str = "127.0.0.1"
     PORT: int = 8000

@@ -199,6 +199,38 @@ def test_timeout_reset_prevents_realert_loop(seeded_db, monkeypatch):
     assert lo <= last.value <= hi
 
 
+def test_prune_drops_old_readings_and_reading_audit(seeded_db, monkeypatch):
+    """Retention keeps the readings table small: rows older than the window
+    are pruned, along with their per-reading audit entries, while recent
+    data and non-reading audit entries are kept."""
+    from app.models import AuditLog
+    from datetime import timedelta
+
+    monkeypatch.setattr(settings, "RETENTION_HOURS", 12)
+    site = get_site(seeded_db, "GSS Maroua")
+    node = site.sensor_node
+    old = utcnow() - timedelta(hours=20)
+    recent = utcnow() - timedelta(hours=1)
+
+    seeded_db.add(Reading(site_id=site.id, node_id=node.id,
+                          parameter=Parameter.ph, value=6.0, ts=old))
+    seeded_db.add(Reading(site_id=site.id, node_id=node.id,
+                          parameter=Parameter.ph, value=6.1, ts=recent))
+    seeded_db.add(AuditLog(actor="system", action="reading", detail="ph=6", ts=old))
+    seeded_db.add(AuditLog(actor="admin", action="alert_acknowledged",
+                           detail="kept", ts=old))
+    seeded_db.commit()
+
+    Simulator()._prune_old_data(seeded_db)
+    seeded_db.commit()
+
+    values = [r.value for r in seeded_db.query(Reading).all()]
+    assert 6.1 in values and 6.0 not in values  # old reading gone, recent kept
+    actions = [a.action for a in seeded_db.query(AuditLog).all()]
+    assert "reading" not in actions            # old reading-audit pruned
+    assert "alert_acknowledged" in actions     # action audit kept regardless
+
+
 def test_run_survives_a_failing_tick(SessionFactory, seeded_db, monkeypatch):
     """A single failing tick must not kill the feed. This is the Render bug:
     managed Postgres drops idle connections, a commit fails, and the old
