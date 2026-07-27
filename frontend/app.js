@@ -12,9 +12,8 @@ const API = "/api/v1";
 const STR = {
   en: {
     login_sub: "Hydroponic farm monitoring",
-    sign_in: "Sign in", try_role: "Or sign in with one click", logout: "Log out",
-    username: "Username", password: "Password",
-    login_hint: "Every demo account uses the password demo1234. Type a username and password above and press Sign in, or just tap a role below to sign in instantly.",
+    try_role: "Choose a demo account to explore", logout: "Log out",
+    login_hint: "This is a live demo. Pick a role below to explore VertiBottle as that user. Sign-up and password login aren't available yet.",
     chip_school: "School operator", chip_cb: "CB operator", chip_coord: "Coordinator",
     chip_agro: "Agronomist", chip_admin: "Administrator",
     banner_alert: "Alert at {site}: {param} is {val}, outside the target band {band}. Action is needed.",
@@ -75,9 +74,8 @@ const STR = {
   },
   fr: {
     login_sub: "Suivi des fermes hydroponiques",
-    sign_in: "Connexion", try_role: "Ou connectez-vous en un clic", logout: "Déconnexion",
-    username: "Nom d'utilisateur", password: "Mot de passe",
-    login_hint: "Tous les comptes de démonstration utilisent le mot de passe demo1234. Saisissez un identifiant et un mot de passe ci-dessus puis cliquez sur Connexion, ou touchez simplement un rôle ci-dessous pour vous connecter instantanément.",
+    try_role: "Choisissez un compte de démonstration", logout: "Déconnexion",
+    login_hint: "Ceci est une démonstration en direct. Choisissez un rôle ci-dessous pour explorer VertiBottle en tant que cet utilisateur. L'inscription et la connexion par mot de passe ne sont pas encore disponibles.",
     chip_school: "Opérateur scolaire", chip_cb: "Opérateur CB", chip_coord: "Coordinateur",
     chip_agro: "Agronome", chip_admin: "Administrateur",
     banner_alert: "Alerte {site} : {param} = {val}, hors de la plage cible {band}. Une intervention est nécessaire.",
@@ -187,40 +185,39 @@ function logout() {
   showLogin();
 }
 
-document.getElementById("login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const errEl = document.getElementById("login-error");
-  errEl.classList.add("hidden");
-  try {
-    const data = await api("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({
-        username: document.getElementById("login-username").value,
-        password: document.getElementById("login-password").value,
-      }),
-    });
-    token = data.token; me = data.user;
-    localStorage.setItem("vb_token", token);
-    localStorage.setItem("vb_me", JSON.stringify(me));
-    // Default to the account's profile language, but never override a
-    // language the user picked with the toggle themselves.
-    if (me.language && !localStorage.getItem("vb_lang_manual")) {
-      lang = me.language;
-      localStorage.setItem("vb_lang", lang);
-    }
-    location.hash = "#/overview";
-    showApp();
-  } catch (err) {
-    errEl.textContent = err.message;
-    errEl.classList.remove("hidden");
+// v1 has no real login yet — the five roles are demo accounts you pick to
+// explore the system as that user. Each chip signs in with the shared demo
+// password behind the scenes.
+async function signInAs(username) {
+  const data = await api("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password: "demo1234" }),
+  });
+  token = data.token; me = data.user;
+  localStorage.setItem("vb_token", token);
+  localStorage.setItem("vb_me", JSON.stringify(me));
+  // Default to the account's profile language, but never override a language
+  // the user picked with the toggle themselves.
+  if (me.language && !localStorage.getItem("vb_lang_manual")) {
+    lang = me.language;
+    localStorage.setItem("vb_lang", lang);
   }
-});
+  location.hash = "#/overview";
+  showApp();
+}
 
 document.querySelectorAll(".role-chips .chip").forEach((chip) => {
-  chip.addEventListener("click", () => {
-    document.getElementById("login-username").value = chip.dataset.user;
-    document.getElementById("login-password").value = "demo1234";
-    document.getElementById("login-form").requestSubmit();
+  chip.addEventListener("click", async () => {
+    const errEl = document.getElementById("login-error");
+    errEl.classList.add("hidden");
+    chip.classList.add("chip-loading");
+    try {
+      await signInAs(chip.dataset.user);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove("hidden");
+      chip.classList.remove("chip-loading");
+    }
   });
 });
 

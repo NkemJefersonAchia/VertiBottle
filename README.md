@@ -9,7 +9,7 @@ Full-stack prototype (FastAPI + PostgreSQL + a live WebGL dashboard), built agai
 |---|---|
 | **Live demo** | **https://vertibottle.onrender.com** |
 | **Quick access** | https://vertibottle.onrender.com/?auto=coordinator (skips login) |
-| **Login** | tap a role chip to sign in instantly, or type a username + password and press **Sign in**. All demo passwords are `demo1234` |
+| **Login** | v1 has no password login yet — the login screen offers five **demo accounts**; tap a role to explore the system as that user |
 | **Source** | this repository (public) |
 | **SRS document** | _paste your Google Drive link to the SRS here_ |
 
