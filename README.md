@@ -11,7 +11,7 @@ Full-stack prototype (FastAPI + PostgreSQL + a live WebGL dashboard), built agai
 | **Quick access** | https://vertibottle.onrender.com/?auto=coordinator (skips login) |
 | **Login** | v1 has no password login yet — the login screen offers five **demo accounts**; tap a role to explore the system as that user |
 | **Source** | this repository (public) |
-| **SRS document** | _paste your Google Drive link to the SRS here_ |
+| **SRS document** | https://docs.google.com/document/d/18_t9mkw8S36gfsxeKgLwy5b4EbRnL2cx46spcxxD4A0/edit?usp=sharing|
 
 > On the free hosting tier the **first request can take ~50 seconds** to wake the server. Open the link once and wait, then it is fast. Keep a tab open during a demo — the dashboard polls every 30s, which keeps the server awake and the live data flowing.
 
